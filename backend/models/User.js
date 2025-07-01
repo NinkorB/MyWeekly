@@ -1,14 +1,24 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
+// Define a schema for individual tasks
+const taskSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    time: { type: String, required: true },
+    completed: { type: Boolean, default: false }
+});
+
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true, trim: true },
     password: { type: String, required: true },
     githubUrl: { type: String, trim: true },
+    // Each user now has an array of their own tasks
+    tasks: [taskSchema],
+    // Progress is now calculated from tasks
     progress: { type: Map, of: Number, default: {} }
 }, { timestamps: true });
 
-// Hash password before saving
+// Hash password before saving (no change here)
 userSchema.pre('save', async function(next) {
     if (!this.isModified('password')) {
         return next();
