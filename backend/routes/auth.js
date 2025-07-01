@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const authMiddleware = require('../middleware/auth');
+const { scheduleWeeklyTasks } = require('../utils/scheduler'); // <-- THE FIX IS HERE
 
 const router = express.Router();
 
@@ -9,12 +10,25 @@ const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
-// Register route (no change needed)
+// @route   POST /api/auth/register
+// @desc    Register a new user
 router.post('/register', async (req, res) => {
-    // ...
+    const { username, password, githubUrl } = req.body;
+    try {
+        const userExists = await User.findOne({ username });
+        if (userExists) return res.status(400).json({ msg: 'User already exists' });
+
+        const user = await User.create({ username, password, githubUrl });
+
+        if (user) {
+            const token = generateToken(user._id);
+            res.status(201).json({ token, user: user.toObject() });
+        }
+    } catch (err) { res.status(500).json({ msg: 'Server Error' }); }
 });
 
-// Login route (updated to return all user data)
+// @route   POST /api/auth/login
+// @desc    Authenticate user & get token
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -28,14 +42,27 @@ router.post('/login', async (req, res) => {
     } catch (err) { res.status(500).json({ msg: 'Server Error' }); }
 });
 
-// Verify route (updated to return all user data)
+// @route   POST /api/auth/verify
+// @desc    Verify token and return user data
 router.post('/verify', authMiddleware, async (req, res) => {
     res.json({ token: req.token, user: req.user.toObject() });
 });
 
-// Update Reward route (no change needed)
+// @route   PUT /api/auth/reward
+// @desc    Update the user's weekly reward
 router.put('/reward', authMiddleware, async (req, res) => {
-    // ...
+    try {
+        const user = await User.findById(req.user.id);
+        if (user) {
+            user.reward = req.body.reward || user.reward;
+            const updatedUser = await user.save();
+            res.json({ reward: updatedUser.reward });
+        } else {
+            res.status(404).json({ msg: 'User not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ msg: 'Server Error' });
+    }
 });
 
 // @route   PUT /api/auth/settings
@@ -63,3 +90,5 @@ router.put('/settings', authMiddleware, async (req, res) => {
         res.status(500).json({ msg: 'Server Error' });
     }
 });
+
+module.exports = router;
