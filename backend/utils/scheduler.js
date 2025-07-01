@@ -17,14 +17,14 @@ function scheduleWeeklyTasks(weeklyTasks, user) {
                     startTime = availableTime;
                     endTime = dayEnd;
                 } else {
-              
+                    // This is a simplified logic. A real app might have more complex slot fitting.
                     startTime = availableTime;
                     endTime = startTime + template.duration;
                 }
 
-                if (endTime > dayEnd) continue; 
+                if (endTime > dayEnd) continue; // Skip if task doesn't fit
 
-                dailySlots[day] = endTime; 
+                dailySlots[day] = endTime; // Update next available slot
 
             } else {
                 // Manual Scheduling
@@ -47,7 +47,7 @@ function scheduleWeeklyTasks(weeklyTasks, user) {
 }
 
 function formatTime(hour) {
-    if (hour >= 24) hour = hour % 24; 
+    if (hour >= 24) hour = hour % 24; // Handle times past midnight
     const ampm = hour >= 12 ? 'PM' : 'AM';
     const displayHour = hour % 12 === 0 ? 12 : hour % 12;
     return `${displayHour} ${ampm}`;
