@@ -1,16 +1,25 @@
+// Helper to get the start of the current week (Monday)
+function getStartOfWeek(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0); // Reset time to midnight
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+    return new Date(d.setDate(diff));
+}
+
 function scheduleWeeklyTasks(weeklyTasks, user) {
     const generatedTasks = [];
     // Initialize daily slots based on user's settings
     const dailySlots = Array(7).fill(user.dayStartTime || 9); 
 
     weeklyTasks.forEach(template => {
-        for (let i = 0; i < 7; i++) { // For each day of the week
-            const day = (i + 1) % 7; // Monday is 1, Sunday is 0
+        for (let i = 1; i <= 7; i++) { // Monday = 1, ..., Sunday = 7
+            const day = i;
             let startTime, endTime;
 
             if (template.automate) {
                 // Automated Scheduling
-                let availableTime = dailySlots[day];
+                let availableTime = dailySlots[i-1];
                 const dayEnd = user.dayEndTime || 21;
 
                 if (template.preferredSlots.length === 3) { // All slots selected
@@ -24,7 +33,7 @@ function scheduleWeeklyTasks(weeklyTasks, user) {
 
                 if (endTime > dayEnd) continue; // Skip if task doesn't fit
 
-                dailySlots[day] = endTime; // Update next available slot
+                dailySlots[i-1] = endTime; // Update next available slot
 
             } else {
                 // Manual Scheduling
@@ -42,7 +51,6 @@ function scheduleWeeklyTasks(weeklyTasks, user) {
             });
         }
     });
-
     return generatedTasks;
 }
 
@@ -53,4 +61,4 @@ function formatTime(hour) {
     return `${displayHour} ${ampm}`;
 }
 
-module.exports = { scheduleWeeklyTasks };
+module.exports = { scheduleWeeklyTasks, getStartOfWeek };
