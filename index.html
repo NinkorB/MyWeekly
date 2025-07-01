@@ -11,90 +11,186 @@
         .task-card.completed { background-color: #e0f2fe; border-left-color: #0ea5e9; }
         .task-card.completed .task-title { text-decoration: line-through; color: #6b7280; }
         .modal-backdrop { background-color: rgba(0,0,0,0.5); }
-        .contribution-grid { display: grid; grid-template-columns: repeat(26, 1fr); grid-template-rows: repeat(7, 1fr); grid-auto-flow: column; gap: 4px; }
-        .contribution-cell { width: 100%; aspect-ratio: 1 / 1; border-radius: 2px; }
-        .level-0 { background-color: #ebedf0; }
-        .level-1 { background-color: #9be9a8; }
-        .level-2 { background-color: #40c463; }
-        .level-3 { background-color: #30a14e; }
-        .level-4 { background-color: #216e39; }
         [x-cloak] { display: none !important; }
     </style>
 </head>
 <body x-data="app()" x-init="init()" class="flex flex-col min-h-screen">
 
-    <!-- Login/Register Modal (No changes here) -->
+    <!-- Login/Register Modal -->
     <div x-show="!auth.token" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
-        <!-- ... same as before ... -->
-    </div>
-
-    <!-- Create Task Modal -->
-    <div x-show="showCreateTaskModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" @keydown.escape.window="showCreateTaskModal = false">
-        <div @click.away="showCreateTaskModal = false" class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
-            <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">Add a New Task</h2>
-            <form @submit.prevent="createTask()">
+        <div @click.away="auth.isRegistering = false" class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-2" x-text="auth.isRegistering ? 'Create Your Account' : 'Welcome Back'"></h2>
+            <p class="text-center text-gray-500 mb-6" x-text="auth.isRegistering ? 'Start tracking your progress like a pro.' : 'Login to see your schedule.'"></p>
+            <form @submit.prevent="auth.isRegistering ? register() : login()">
                 <div class="space-y-4">
-                    <input type="text" x-model="taskForm.title" placeholder="Task Title (e.g., DSA Practice)" required class="w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
-                    <input type="text" x-model="taskForm.time" placeholder="Time (e.g., 10:00 AM - 12:00 PM)" required class="w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
-                    <p x-text="taskForm.error" class="text-red-500 text-sm text-center h-4"></p>
-                    <div class="flex gap-4">
-                        <button type="button" @click="showCreateTaskModal = false" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-4 rounded-lg transition">Cancel</button>
-                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-lg transition">Add Task</button>
-                    </div>
+                    <input type="text" x-model="form.username" placeholder="Username" required class="w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    <input type="password" x-model="form.password" placeholder="Password" required class="w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    <div x-show="auth.isRegistering" x-transition><input type="url" x-model="form.githubUrl" placeholder="https://github.com/your-profile" class="w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none"></div>
+                    <p x-text="auth.error" class="text-red-500 text-sm text-center h-4"></p>
+                    <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-lg transition" x-text="auth.isRegistering ? 'Register' : 'Login'"></button>
                 </div>
             </form>
+            <p class="text-center text-sm text-gray-500 mt-6">
+                <span x-text="auth.isRegistering ? 'Already have an account?' : 'Don’t have an account?'"></span>
+                <a href="#" @click.prevent="auth.isRegistering = !auth.isRegistering; auth.error = ''" class="font-semibold text-sky-600 hover:text-sky-500" x-text="auth.isRegistering ? 'Login' : 'Register'"></a>
+            </p>
         </div>
     </div>
 
-    <!-- Main Content -->
-    <main x-show="auth.token" x-cloak class="container mx-auto p-4 md:p-8 max-w-7xl flex-grow">
-        <header class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-800">MyWeekly</h1>
-            <div>
-                <span class="text-gray-600 mr-4" x-text="`Welcome, ${auth.username}`"></span>
-                <button @click="logout()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition">Logout</button>
+    <!-- Main App -->
+    <div x-show="auth.token" x-cloak class="flex-grow">
+        <header class="bg-white shadow-sm">
+            <div class="container mx-auto p-4 flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-800">MyWeekly</h1>
+                <nav class="flex items-center gap-4">
+                    <a href="#" @click.prevent="currentPage = 'dashboard'" :class="{'text-sky-600 font-semibold': currentPage === 'dashboard'}" class="text-gray-600 hover:text-sky-600">Dashboard</a>
+                    <a href="#" @click.prevent="currentPage = 'manageTasks'" :class="{'text-sky-600 font-semibold': currentPage === 'manageTasks'}" class="text-gray-600 hover:text-sky-600">Manage Tasks</a>
+                    <button @click="logout()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition">Logout</button>
+                </nav>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-2">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold">Today's Tasks</h2>
-                    <button @click="showCreateTaskModal = true" class="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-lg transition">+ Create Task</button>
-                </div>
-                <div id="schedule-container" class="space-y-4">
-                    <template x-if="tasks.length === 0">
-                        <p class="text-center text-gray-500 bg-white p-8 rounded-xl shadow-sm">You have no tasks for today. Click "Create Task" to add one!</p>
-                    </template>
-                    <template x-for="task in tasks" :key="task._id">
-                        <div class="task-card flex items-center p-5 bg-white rounded-xl shadow-sm border-l-4 border-gray-300 transition hover:shadow-md" :class="{ 'completed': task.completed }">
-                            <div class="flex-grow">
-                                <p class="font-semibold text-sky-600" x-text="task.time"></p>
-                                <h3 class="text-lg font-medium text-gray-800 task-title" x-text="task.title"></h3>
+        <!-- Page: Dashboard -->
+        <main x-show="currentPage === 'dashboard'" class="container mx-auto p-4 md:p-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2">
+                    <h2 class="text-3xl font-bold mb-1" x-text="`Today's Focus: ${currentDate}`"></h2>
+                    <p class="text-gray-500 mb-6" x-text="currentDayName"></p>
+                    
+                    <div id="schedule-container" class="space-y-4">
+                         <template x-if="todaysTasks.length === 0">
+                            <p class="text-center text-gray-500 bg-white p-8 rounded-xl shadow-sm">No tasks scheduled for today. Go to "Manage Tasks" to add some for the week!</p>
+                        </template>
+                        <template x-for="task in todaysTasks" :key="task._id">
+                            <div class="task-card flex items-center p-5 bg-white rounded-xl shadow-sm border-l-4" :class="{ 'completed': task.completed, 'border-sky-500': !task.completed, 'border-green-500': task.completed }">
+                                <a :href="task.link" target="_blank" class="flex-grow" :class="{'pointer-events-none': !task.link}">
+                                    <p class="font-semibold text-sky-600" x-text="task.time"></p>
+                                    <h3 class="text-lg font-medium text-gray-800 task-title" x-text="getFormattedTaskTitle(task)"></h3>
+                                </a>
+                                <input type="checkbox" @change="toggleTask(task._id)" :checked="task.completed" class="h-6 w-6 rounded-md border-gray-300 text-sky-600 focus:ring-sky-500 ml-4 cursor-pointer">
                             </div>
-                            <input type="checkbox" @change="toggleTask(task._id)" :checked="task.completed" class="h-6 w-6 rounded-md border-gray-300 text-sky-600 focus:ring-sky-500 ml-4 cursor-pointer">
-                            <button @click="deleteTask(task._id)" class="ml-2 text-gray-400 hover:text-red-500 transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Side Panel (Progress) -->
+                <div class="lg:col-span-1">
+                    <h2 class="text-2xl font-bold mb-4 invisible">Progress</h2>
+                    <div class="bg-white p-6 rounded-xl shadow-sm">
+                        <h3 class="font-bold mb-2">Weekly Progress</h3>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div class="bg-sky-500 h-2.5 rounded-full" :style="`width: ${progress.percentage}%`"></div>
                         </div>
-                    </template>
+                        <p class="text-center text-sm font-medium text-gray-600 mt-2" x-text="`${progress.completed} / ${progress.total} tasks completed (${progress.percentage}%)`"></p>
+                        
+                        <div class="mt-6 pt-4 border-t">
+                            <h3 class="font-bold mb-2">My Weekly Reward</h3>
+                            <div x-show="!showEditReward">
+                                <p class="text-gray-600" x-text="auth.reward || 'No reward set.'"></p>
+                                <button @click="showEditReward = true; newReward = auth.reward" class="text-sm text-sky-600 hover:underline">Edit</button>
+                            </div>
+                            <div x-show="showEditReward" x-cloak>
+                                <input type="text" x-model="newReward" class="w-full px-3 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                                <div class="flex gap-2 mt-2">
+                                    <button @click="showEditReward = false" class="text-sm text-gray-600 hover:underline">Cancel</button>
+                                    <button @click="updateReward()" class="text-sm text-sky-600 hover:underline">Save</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div x-show="progress.percentage >= 90" class="mt-4 p-4 bg-green-100 text-green-800 rounded-lg text-center font-semibold">
+                            🏆 Reward Unlocked!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Page: Manage Tasks -->
+        <main x-show="currentPage === 'manageTasks'" class="container mx-auto p-4 md:p-8">
+            <h2 class="text-3xl font-bold mb-6">Manage Weekly Tasks</h2>
+
+            <!-- Day Schedule Settings -->
+            <div class="mb-8 bg-white p-6 rounded-xl shadow-sm">
+                <h3 class="text-xl font-bold mb-4">Day Schedule Settings</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="dayStart" class="block text-sm font-medium text-gray-700">Active Day Start (e.g., 10 for 10am)</label>
+                        <input type="number" id="dayStart" x-model.number="settingsForm.dayStartTime" class="mt-1 w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none" min="0" max="23">
+                    </div>
+                    <div>
+                        <label for="dayEnd" class="block text-sm font-medium text-gray-700">Active Day End</label>
+                        <input type="number" id="dayEnd" x-model.number="settingsForm.dayEndTime" class="mt-1 w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none" min="0" max="23">
+                    </div>
+                    <div class="md:mt-6">
+                        <button @click="updateDaySettings()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-lg transition">Save Settings</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Side Panel (Progress) -->
-            <div class="lg:col-span-1">
-                 <!-- ... same as before ... -->
+            <!-- Add Task Form -->
+            <div class="bg-white p-6 rounded-xl shadow-sm">
+                <h3 class="text-xl font-bold mb-4">Add New Weekly Task</h3>
+                <form @submit.prevent="addWeeklyTask()">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" x-model="weeklyTaskForm.title" placeholder="Task Title (e.g., DSA Practice)" required class="w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                        <input type="number" x-model.number="weeklyTaskForm.duration" placeholder="Duration (in hours, e.g., 2)" required class="w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+                    <div class="mt-4">
+                        <input type="url" x-model="weeklyTaskForm.link" placeholder="Optional: Add a relevant link" class="w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+                    <div class="mt-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" x-model="weeklyTaskForm.automate" class="h-5 w-5 rounded text-sky-600 focus:ring-sky-500">
+                            <span class="ml-2 text-gray-700">Automate Scheduling</span>
+                        </label>
+                    </div>
+                    <!-- Manual Scheduling -->
+                    <div x-show="!weeklyTaskForm.automate" class="mt-4">
+                        <label for="startTime" class="block text-sm font-medium text-gray-700">Start Time (e.g., 10 for 10am)</label>
+                        <input type="number" id="startTime" x-model.number="weeklyTaskForm.startTime" placeholder="Enter start hour (0-23)" class="mt-1 w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+                    <!-- Automated Scheduling -->
+                    <div x-show="weeklyTaskForm.automate" class="mt-4 p-4 bg-sky-50 rounded-lg">
+                        <h4 class="font-semibold mb-2">Automation Options</h4>
+                        <p class="text-sm text-gray-600 mb-2">Select your preferred time slots for this task.</p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <template x-for="slot in timeSlots" :key="slot">
+                                <label class="flex items-center p-2 bg-white rounded-md border">
+                                    <input type="checkbox" :value="slot" x-model="weeklyTaskForm.preferredSlots" class="h-4 w-4 rounded text-sky-600 focus:ring-sky-500">
+                                    <span class="ml-2 text-sm" x-text="slot"></span>
+                                </label>
+                            </template>
+                        </div>
+                    </div>
+                    <button type="submit" class="mt-4 w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-lg transition">Add Weekly Task</button>
+                </form>
             </div>
-        </div>
-    </main>
+
+            <h3 class="text-2xl font-bold mt-8 mb-4">Your Weekly Task List</h3>
+            <div class="space-y-3">
+                <template x-if="weeklyTasks.length === 0">
+                    <p class="text-center text-gray-500">No weekly tasks defined yet.</p>
+                </template>
+                <template x-for="task in weeklyTasks" :key="task._id">
+                     <div class="p-4 bg-white rounded-lg shadow-sm flex justify-between items-center">
+                        <span x-text="`${task.title} (${task.duration} hours)`"></span>
+                        <button @click="deleteWeeklyTask(task._id)" class="text-gray-400 hover:text-red-500 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                        </button>
+                    </div>
+                </template>
+            </div>
+        </main>
+    </div>
 
     <!-- Footer -->
     <footer x-show="auth.token" class="w-full text-center p-4 text-gray-500 text-sm mt-8">
-        <p>Developed by Ninkor B.</p>
+        <p class="font-bold">Developed by Ninkor.</p>
+        <p class="max-w-prose mx-auto my-2">This is a personal project to demonstrate full-stack development skills using the MERN stack (MongoDB, Express, Node.js) with a modern front-end. It's designed to be a simple, effective tool for daily planning and motivation.</p>
         <div class="flex justify-center gap-4 mt-2">
-            <a href="https://github.com/ninkorb" target="_blank" class="hover:text-sky-600">GitHub</a>
-            <a href="#" target="_blank" class="hover:text-sky-600">LinkedIn</a>
-            <a href="#" target="_blank" class="hover:text-sky-600">Twitter</a>
+            <a href="https://github.com/NinkorB" target="_blank" class="hover:text-sky-600">GitHub</a>
+            <a href="https://www.linkedin.com/in/ninkor/" target="_blank" class="hover:text-sky-600">LinkedIn</a>
         </div>
     </footer>
 
@@ -102,16 +198,27 @@
     function app() {
         return {
             // --- CONFIG ---
-            API_URL: 'https://myweekly.onrender.com', // Use your live Render URL
+            API_URL: 'https://myweekly.onrender.com',
             
             // --- STATE ---
-            auth: { token: null, username: null, githubUrl: null, isRegistering: false, error: '' },
+            currentPage: 'dashboard',
+            auth: { token: null, username: null, reward: '', dayStartTime: 9, dayEndTime: 21, isRegistering: false, error: '' },
             form: { username: '', password: '', githubUrl: '' },
-            tasks: [], // Now holds the user's custom tasks
-            showCreateTaskModal: false,
-            taskForm: { title: '', time: '', error: '' },
-            
+            tasks: [], 
+            weeklyTasks: [],
+            weeklyTaskForm: { title: '', duration: null, link: '', automate: false, preferredSlots: [], startTime: null },
+            timeSlots: ['Morning', 'Afternoon', 'Evening'],
+            showEditReward: false,
+            newReward: '',
+            settingsForm: { dayStartTime: 9, dayEndTime: 21 },
+
             // --- COMPUTED PROPERTIES ---
+            get currentDate() { return new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); },
+            get currentDayName() { return new Date().toLocaleDateString('en-US', { weekday: 'long' }); },
+            get todaysTasks() {
+                const dayIndex = new Date().getDay();
+                return this.tasks.filter(task => task.dayOfWeek === dayIndex).sort((a,b) => parseInt(a.time) - parseInt(b.time));
+            },
             get progress() {
                 const total = this.tasks.length;
                 if (total === 0) return { completed: 0, total: 0, percentage: 0 };
@@ -123,66 +230,126 @@
             // --- METHODS ---
             init() {
                 const token = localStorage.getItem('myweekly_token');
-                if (token) { this.verifyToken(token); }
+                if (token) this.verifyToken(token);
+            },
+            getFormattedTaskTitle(task) {
+                if (!task.link) {
+                    return task.title;
+                }
+
+                // 1. Check for GitHub Repo (most specific)
+                const githubRepoRegex = /https?:\/\/github\.com\/[^\/]+\/([^\/]+)\/?/;
+                let match = task.link.match(githubRepoRegex);
+                if (match && match[1]) {
+                    const repoName = match[1].replace(/-/g, ' ').replace(/_/g, ' ');
+                    return `${task.title}: ${repoName}`;
+                }
+
+                // 2. Check for keywords in the URL (now applies to all links, including YouTube)
+                const devKeywords = ['mern', 'backend', 'fullstack', 'react', 'node', 'vue', 'angular', 'javascript', 'typescript'];
+                const dsaKeywords = ['java', 'c++', 'python', 'dsa', 'algorithms', 'leetcode'];
+                for (const keyword of [...devKeywords, ...dsaKeywords]) {
+                    if (task.link.toLowerCase().includes(keyword)) {
+                        const formattedKeyword = keyword.charAt(0).toUpperCase() + keyword.slice(1);
+                        return `${task.title}: ${formattedKeyword}`;
+                    }
+                }
+
+                // 3. If no keywords found, check if it's a YouTube link for a generic label
+                const youtubeRegex = /https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//;
+                if (youtubeRegex.test(task.link)) {
+                    return `${task.title}: YouTube Video`;
+                }
+
+                // 4. Default fallback if no other condition is met
+                return task.title;
             },
             async apiCall(endpoint, method = 'GET', body = null) {
-                // ... same as before ...
+                const options = { method, headers: { 'Content-Type': 'application/json' } };
+                if (this.auth.token) options.headers['Authorization'] = `Bearer ${this.auth.token}`;
+                if (body) options.body = JSON.stringify(body);
+                const response = await fetch(`${this.API_URL}${endpoint}`, options);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.msg || 'An error occurred.');
+                return data;
             },
             async login() {
                 try {
                     this.auth.error = '';
-                    const data = await this.apiCall('/api/auth/login', 'POST', { username: this.form.username, password: this.form.password });
+                    const data = await this.apiCall('/api/auth/login', 'POST', this.form);
                     this.setAuthData(data);
                 } catch (error) { this.auth.error = error.message; }
             },
             async register() {
-                // ... same as before ...
+                try {
+                    this.auth.error = '';
+                    const data = await this.apiCall('/api/auth/register', 'POST', this.form);
+                    this.setAuthData(data);
+                } catch (error) { this.auth.error = error.message; }
             },
             async verifyToken(token) {
-                // ... same as before ...
+                try {
+                    this.auth.token = token;
+                    const data = await this.apiCall('/api/auth/verify', 'POST');
+                    this.setAuthData(data);
+                } catch (error) { this.logout(); }
             },
             setAuthData(data) {
                 this.auth.token = data.token;
                 this.auth.username = data.user.username;
-                this.auth.githubUrl = data.user.githubUrl;
-                this.tasks = data.user.tasks || []; // Set tasks from user data
+                this.auth.reward = data.user.reward || 'Enjoy 2 hours of guilt-free fun!';
+                this.auth.dayStartTime = data.user.dayStartTime || 9;
+                this.auth.dayEndTime = data.user.dayEndTime || 21;
+                this.settingsForm.dayStartTime = this.auth.dayStartTime;
+                this.settingsForm.dayEndTime = this.auth.dayEndTime;
+                this.tasks = data.user.tasks || [];
+                this.weeklyTasks = data.user.weeklyTasks || [];
                 localStorage.setItem('myweekly_token', data.token);
-                this.form = { username: '', password: '', githubUrl: '' };
+                this.currentPage = 'dashboard';
             },
             logout() {
-                this.auth = { token: null, username: null, githubUrl: null, isRegistering: false, error: '' };
-                this.tasks = [];
+                this.auth = { token: null, username: null, reward: '', dayStartTime: 9, dayEndTime: 21, isRegistering: false, error: '' };
                 localStorage.removeItem('myweekly_token');
             },
-            // --- NEW TASK METHODS ---
-            async createTask() {
+            async addWeeklyTask() {
                 try {
-                    this.taskForm.error = '';
-                    const updatedTasks = await this.apiCall('/api/tasks', 'POST', this.taskForm);
-                    this.tasks = updatedTasks;
-                    this.showCreateTaskModal = false;
-                    this.taskForm.title = '';
-                    this.taskForm.time = '';
-                } catch (error) {
-                    this.taskForm.error = error.message;
+                    const data = await this.apiCall('/api/tasks/weekly', 'POST', this.weeklyTaskForm);
+                    this.weeklyTasks = data.weeklyTasks;
+                    this.tasks = data.tasks;
+                    this.weeklyTaskForm = { title: '', duration: null, link: '', automate: false, preferredSlots: [], startTime: null };
+                } catch (error) { console.error("Failed to add weekly task:", error); }
+            },
+            async deleteWeeklyTask(taskId) {
+                if (confirm('Are you sure you want to delete this weekly task template? This will remove all scheduled instances of it.')) {
+                    try {
+                        const data = await this.apiCall(`/api/tasks/weekly/${taskId}`, 'DELETE');
+                        this.weeklyTasks = data.weeklyTasks;
+                        this.tasks = data.tasks;
+                    } catch (error) { console.error("Failed to delete weekly task:", error); }
                 }
             },
             async toggleTask(taskId) {
                 try {
                     const updatedTasks = await this.apiCall(`/api/tasks/${taskId}/toggle`, 'PUT');
                     this.tasks = updatedTasks;
-                } catch (error) {
-                    console.error("Failed to toggle task:", error);
-                }
+                } catch (error) { console.error("Failed to toggle task:", error); }
             },
-            async deleteTask(taskId) {
-                if (confirm('Are you sure you want to delete this task?')) {
-                    try {
-                        const updatedTasks = await this.apiCall(`/api/tasks/${taskId}`, 'DELETE');
-                        this.tasks = updatedTasks;
-                    } catch (error) {
-                        console.error("Failed to delete task:", error);
-                    }
+            async updateReward() {
+                try {
+                    const data = await this.apiCall('/api/auth/reward', 'PUT', { reward: this.newReward });
+                    this.auth.reward = data.reward;
+                    this.showEditReward = false;
+                } catch (error) { console.error("Failed to update reward:", error); }
+            },
+            async updateDaySettings() {
+                try {
+                    const data = await this.apiCall('/api/auth/settings', 'PUT', this.settingsForm);
+                    this.auth.dayStartTime = data.dayStartTime;
+                    this.auth.dayEndTime = data.dayEndTime;
+                    alert('Settings saved!');
+                } catch (error) {
+                    alert('Failed to save settings.');
+                    console.error("Failed to update settings:", error);
                 }
             }
         }
