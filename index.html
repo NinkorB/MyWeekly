@@ -45,6 +45,7 @@
                 <nav class="flex items-center gap-4">
                     <a href="#" @click.prevent="currentPage = 'dashboard'" :class="{'text-sky-600 font-semibold': currentPage === 'dashboard'}" class="text-gray-600 hover:text-sky-600">Dashboard</a>
                     <a href="#" @click.prevent="currentPage = 'manageTasks'" :class="{'text-sky-600 font-semibold': currentPage === 'manageTasks'}" class="text-gray-600 hover:text-sky-600">Manage Tasks</a>
+                    <a href="#" @click.prevent="currentPage = 'history'" :class="{'text-sky-600 font-semibold': currentPage === 'history'}" class="text-gray-600 hover:text-sky-600">History</a>
                     <button @click="logout()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition">Logout</button>
                 </nav>
             </div>
@@ -73,33 +74,26 @@
                     </div>
                 </div>
 
-                <!-- Side Panel (Progress) -->
+                <!-- Side Panel (Progress & Reward) -->
                 <div class="lg:col-span-1">
                     <h2 class="text-2xl font-bold mb-4 invisible">Progress</h2>
                     <div class="bg-white p-6 rounded-xl shadow-sm">
-                        <h3 class="font-bold mb-2">Weekly Progress</h3>
+                        <h3 class="font-bold mb-2">This Week's Progress</h3>
                         <div class="w-full bg-gray-200 rounded-full h-2.5">
                             <div class="bg-sky-500 h-2.5 rounded-full" :style="`width: ${progress.percentage}%`"></div>
                         </div>
                         <p class="text-center text-sm font-medium text-gray-600 mt-2" x-text="`${progress.completed} / ${progress.total} tasks completed (${progress.percentage}%)`"></p>
                         
-                        <div class="mt-6 pt-4 border-t">
-                            <h3 class="font-bold mb-2">My Weekly Reward</h3>
-                            <div x-show="!showEditReward">
-                                <p class="text-gray-600" x-text="auth.reward || 'No reward set.'"></p>
-                                <button @click="showEditReward = true; newReward = auth.reward" class="text-sm text-sky-600 hover:underline">Edit</button>
-                            </div>
-                            <div x-show="showEditReward" x-cloak>
-                                <input type="text" x-model="newReward" class="w-full px-3 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
-                                <div class="flex gap-2 mt-2">
-                                    <button @click="showEditReward = false" class="text-sm text-gray-600 hover:underline">Cancel</button>
-                                    <button @click="updateReward()" class="text-sm text-sky-600 hover:underline">Save</button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div x-show="progress.percentage >= 90" class="mt-4 p-4 bg-green-100 text-green-800 rounded-lg text-center font-semibold">
-                            🏆 Reward Unlocked!
+                        <!-- REWARD SECTION -->
+                        <div x-show="isSunday" class="mt-6 pt-4 border-t">
+                             <h3 class="font-bold mb-2">Claim Your Reward!</h3>
+                             <div x-show="currentWeekLog && currentWeekLog.goalAchieved">
+                                <p class="text-green-700 font-semibold">Goal Achieved! Your reward is:</p>
+                                <p class="text-gray-800" x-text="auth.reward"></p>
+                             </div>
+                             <div x-show="!currentWeekLog || !currentWeekLog.goalAchieved">
+                                <p class="text-gray-500">You didn't meet your goal this week. Keep trying!</p>
+                             </div>
                         </div>
                     </div>
                 </div>
@@ -182,6 +176,28 @@
                 </template>
             </div>
         </main>
+        
+        <!-- Page: History -->
+        <main x-show="currentPage === 'history'" class="container mx-auto p-4 md:p-8">
+            <h2 class="text-3xl font-bold mb-6">Your Goal History</h2>
+            <div class="bg-white p-6 rounded-xl shadow-sm mb-8 text-center">
+                <h3 class="text-xl font-bold text-gray-800">Current Streak</h3>
+                <p class="text-6xl font-bold text-sky-600 my-2" x-text="streak"></p>
+                <p class="text-gray-500">consecutive weeks with your goal achieved!</p>
+            </div>
+
+            <div class="space-y-3">
+                <template x-for="log in sortedHistory" :key="log.weekOf">
+                    <div class="p-4 bg-white rounded-lg shadow-sm flex justify-between items-center">
+                        <div>
+                            <p class="font-semibold" x-text="`Week of ${formatDate(log.weekOf)}`"></p>
+                            <p class="text-sm text-gray-600" x-text="`${log.tasksCompleted} / ${log.totalTasks} tasks completed`"></p>
+                        </div>
+                        <span class="px-3 py-1 text-sm font-semibold rounded-full" :class="log.goalAchieved ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" x-text="log.goalAchieved ? 'Goal Met' : 'Missed'"></span>
+                    </div>
+                </template>
+            </div>
+        </main>
     </div>
 
     <!-- Footer -->
@@ -206,6 +222,7 @@
             form: { username: '', password: '', githubUrl: '' },
             tasks: [], 
             weeklyTasks: [],
+            history: [],
             weeklyTaskForm: { title: '', duration: null, link: '', automate: false, preferredSlots: [], startTime: null },
             timeSlots: ['Morning', 'Afternoon', 'Evening'],
             showEditReward: false,
@@ -215,53 +232,66 @@
             // --- COMPUTED PROPERTIES ---
             get currentDate() { return new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); },
             get currentDayName() { return new Date().toLocaleDateString('en-US', { weekday: 'long' }); },
+            get isSunday() { return new Date().getDay() === 0; },
             get todaysTasks() {
-                const dayIndex = new Date().getDay();
+                let dayIndex = new Date().getDay();
+                if (dayIndex === 0) dayIndex = 7; // Treat Sunday as 7 for consistency
                 return this.tasks.filter(task => task.dayOfWeek === dayIndex).sort((a,b) => parseInt(a.time) - parseInt(b.time));
             },
+            get currentWeekLog() {
+                const startOfWeek = this.getStartOfWeek(new Date());
+                return this.history.find(log => new Date(log.weekOf).getTime() === startOfWeek.getTime());
+            },
             get progress() {
-                const total = this.tasks.length;
-                if (total === 0) return { completed: 0, total: 0, percentage: 0 };
-                const completed = this.tasks.filter(t => t.completed).length;
-                const percentage = Math.round((completed / total) * 100);
-                return { completed, total, percentage };
+                const log = this.currentWeekLog;
+                if (!log) return { completed: 0, total: this.tasks.length, percentage: 0 };
+                const percentage = log.totalTasks > 0 ? Math.round((log.tasksCompleted / log.totalTasks) * 100) : 0;
+                return { completed: log.tasksCompleted, total: log.totalTasks, percentage };
+            },
+            get sortedHistory() {
+                return [...this.history].sort((a, b) => new Date(b.weekOf) - new Date(a.weekOf));
+            },
+            get streak() {
+                let currentStreak = 0;
+                const sorted = this.sortedHistory;
+                for (let i = 0; i < sorted.length; i++) {
+                    if (sorted[i].goalAchieved) {
+                        currentStreak++;
+                    } else {
+                        break;
+                    }
+                }
+                return currentStreak;
             },
             
             // --- METHODS ---
-            init() {
-                const token = localStorage.getItem('myweekly_token');
-                if (token) this.verifyToken(token);
+            getStartOfWeek(date) {
+                const d = new Date(date);
+                const day = d.getDay();
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                d.setHours(0, 0, 0, 0);
+                return new Date(d.setDate(diff));
+            },
+            formatDate(dateString) {
+                return new Date(dateString).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
             },
             getFormattedTaskTitle(task) {
-                if (!task.link) {
-                    return task.title;
-                }
-
-                // 1. Check for GitHub Repo (most specific)
+                if (!task.link) return task.title;
                 const githubRepoRegex = /https?:\/\/github\.com\/[^\/]+\/([^\/]+)\/?/;
                 let match = task.link.match(githubRepoRegex);
                 if (match && match[1]) {
                     const repoName = match[1].replace(/-/g, ' ').replace(/_/g, ' ');
                     return `${task.title}: ${repoName}`;
                 }
-
-                // 2. Check for keywords in the URL (now applies to all links, including YouTube)
                 const devKeywords = ['mern', 'backend', 'fullstack', 'react', 'node', 'vue', 'angular', 'javascript', 'typescript'];
                 const dsaKeywords = ['java', 'c++', 'python', 'dsa', 'algorithms', 'leetcode'];
                 for (const keyword of [...devKeywords, ...dsaKeywords]) {
                     if (task.link.toLowerCase().includes(keyword)) {
-                        const formattedKeyword = keyword.charAt(0).toUpperCase() + keyword.slice(1);
-                        return `${task.title}: ${formattedKeyword}`;
+                        return `${task.title}: ${keyword.charAt(0).toUpperCase() + keyword.slice(1)}`;
                     }
                 }
-
-                // 3. If no keywords found, check if it's a YouTube link for a generic label
                 const youtubeRegex = /https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//;
-                if (youtubeRegex.test(task.link)) {
-                    return `${task.title}: YouTube Video`;
-                }
-
-                // 4. Default fallback if no other condition is met
+                if (youtubeRegex.test(task.link)) return `${task.title}: YouTube Video`;
                 return task.title;
             },
             async apiCall(endpoint, method = 'GET', body = null) {
@@ -304,6 +334,7 @@
                 this.settingsForm.dayEndTime = this.auth.dayEndTime;
                 this.tasks = data.user.tasks || [];
                 this.weeklyTasks = data.user.weeklyTasks || [];
+                this.history = data.user.history || [];
                 localStorage.setItem('myweekly_token', data.token);
                 this.currentPage = 'dashboard';
             },
@@ -330,8 +361,9 @@
             },
             async toggleTask(taskId) {
                 try {
-                    const updatedTasks = await this.apiCall(`/api/tasks/${taskId}/toggle`, 'PUT');
-                    this.tasks = updatedTasks;
+                    const data = await this.apiCall(`/api/tasks/${taskId}/toggle`, 'PUT');
+                    this.tasks = data.tasks;
+                    this.history = data.history;
                 } catch (error) { console.error("Failed to toggle task:", error); }
             },
             async updateReward() {
@@ -346,7 +378,8 @@
                     const data = await this.apiCall('/api/auth/settings', 'PUT', this.settingsForm);
                     this.auth.dayStartTime = data.dayStartTime;
                     this.auth.dayEndTime = data.dayEndTime;
-                    alert('Settings saved!');
+                    this.tasks = data.tasks; // Refresh tasks with new settings
+                    alert('Settings saved and schedule regenerated!');
                 } catch (error) {
                     alert('Failed to save settings.');
                     console.error("Failed to update settings:", error);
