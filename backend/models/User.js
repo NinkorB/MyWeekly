@@ -15,7 +15,7 @@ const taskSchema = new mongoose.Schema({
 const weeklyTaskSchema = new mongoose.Schema({
     title: { type: String, required: true },
     duration: { type: Number, required: true },
-    link: { type: String, default: '' },
+    link: { type: String, default: '' }, // 
     automate: { type: Boolean, default: false },
     preferredSlots: [String],
     startTime: { type: Number, default: null } 
@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema({
     githubUrl: { type: String, trim: true },
     reward: { type: String, default: 'Enjoy 2 hours of guilt-free fun!' },
     dayStartTime: { type: Number, default: 9 },
-    dayEndTime: { type: Number, default: 21 },
+    dayEndTime: { type: Number, default: 21 }, 
     tasks: [taskSchema],
     weeklyTasks: [weeklyTaskSchema]
 }, { timestamps: true });
