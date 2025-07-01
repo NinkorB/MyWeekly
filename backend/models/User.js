@@ -1,24 +1,30 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-// Schema for the generated daily tasks
 const taskSchema = new mongoose.Schema({
     title: { type: String, required: true },
     time: { type: String, required: true },
     link: { type: String, default: '' },
     completed: { type: Boolean, default: false },
-    dayOfWeek: { type: Number, required: true },
-    templateId: { type: mongoose.Schema.Types.ObjectId, ref: 'WeeklyTask' }
+    dayOfWeek: { type: Number, required: true }, // 1 for Monday, 7 for Sunday
+    templateId: { type: mongoose.Schema.Types.ObjectId }
 });
 
-// Schema for the weekly task templates
 const weeklyTaskSchema = new mongoose.Schema({
     title: { type: String, required: true },
     duration: { type: Number, required: true },
-    link: { type: String, default: '' }, // 
+    link: { type: String, default: '' },
     automate: { type: Boolean, default: false },
     preferredSlots: [String],
-    startTime: { type: Number, default: null } 
+    startTime: { type: Number, default: null }
+});
+
+// NEW schema for tracking weekly history
+const weekLogSchema = new mongoose.Schema({
+    weekOf: { type: Date, required: true }, // The start date of the week (a Monday)
+    goalAchieved: { type: Boolean, required: true },
+    tasksCompleted: { type: Number, required: true },
+    totalTasks: { type: Number, required: true }
 });
 
 const userSchema = new mongoose.Schema({
@@ -27,9 +33,10 @@ const userSchema = new mongoose.Schema({
     githubUrl: { type: String, trim: true },
     reward: { type: String, default: 'Enjoy 2 hours of guilt-free fun!' },
     dayStartTime: { type: Number, default: 9 },
-    dayEndTime: { type: Number, default: 21 }, 
+    dayEndTime: { type: Number, default: 21 },
     tasks: [taskSchema],
-    weeklyTasks: [weeklyTaskSchema]
+    weeklyTasks: [weeklyTaskSchema],
+    history: [weekLogSchema] // <-- ADDED
 }, { timestamps: true });
 
 // User model methods remain the same...
