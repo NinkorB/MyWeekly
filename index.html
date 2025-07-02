@@ -16,24 +16,92 @@
 </head>
 <body x-data="app()" x-init="init()" class="flex flex-col min-h-screen">
 
-    <!-- Login/Register Modal -->
+    <!-- Login/Register/Forgot Password Section -->
     <div x-show="!auth.token" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
-        <div @click.away="auth.isRegistering = false" class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
-            <h2 class="text-3xl font-bold text-center text-gray-800 mb-2" x-text="auth.isRegistering ? 'Create Your Account' : 'Welcome Back'"></h2>
-            <p class="text-center text-gray-500 mb-6" x-text="auth.isRegistering ? 'Start tracking your progress like a pro.' : 'Login to see your schedule.'"></p>
-            <form @submit.prevent="auth.isRegistering ? register() : login()">
-                <div class="space-y-4">
-                    <input type="text" x-model="form.username" placeholder="Username" required class="w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
-                    <input type="password" x-model="form.password" placeholder="Password" required class="w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
-                    <div x-show="auth.isRegistering" x-transition><input type="url" x-model="form.githubUrl" placeholder="https://github.com/your-profile" class="w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none"></div>
-                    <p x-text="auth.error" class="text-red-500 text-sm text-center h-4"></p>
-                    <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-lg transition" x-text="auth.isRegistering ? 'Register' : 'Login'"></button>
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+            <!-- Login Form -->
+            <div x-show="auth.view === 'login'">
+                <h2 class="text-3xl font-bold text-center text-gray-800 mb-2">Welcome Back</h2>
+                <p class="text-center text-gray-500 mb-6">Login to see your schedule.</p>
+                <form @submit.prevent="login()">
+                    <div class="space-y-4">
+                        <input type="text" x-model="form.username" placeholder="Username" required class="w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                        <input type="password" x-model="form.password" placeholder="Password" required class="w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                        <p x-text="auth.error" class="text-red-500 text-sm text-center h-4"></p>
+                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-lg transition">Login</button>
+                    </div>
+                </form>
+                <p class="text-center text-sm text-gray-500 mt-4">
+                    <a href="#" @click.prevent="auth.view = 'forgot'" class="font-semibold text-sky-600 hover:text-sky-500">Forgot Password?</a>
+                </p>
+                <p class="text-center text-sm text-gray-500 mt-2">
+                    Don’t have an account? <a href="#" @click.prevent="auth.view = 'register'" class="font-semibold text-sky-600 hover:text-sky-500">Register</a>
+                </p>
+            </div>
+            <!-- Register Form -->
+            <div x-show="auth.view === 'register'">
+                 <h2 class="text-3xl font-bold text-center text-gray-800 mb-2">Create Your Account</h2>
+                <p class="text-center text-gray-500 mb-6">Start tracking your progress like a pro.</p>
+                <form @submit.prevent="register()">
+                    <div class="space-y-4">
+                        <input type="text" x-model="form.username" placeholder="Username" required class="w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                        <input type="password" x-model="form.password" placeholder="Password" required class="w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                        <input type="text" x-model="form.fullName" placeholder="Full Name" required class="w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                        <input type="url" x-model="form.githubUrl" placeholder="https://github.com/your-profile" class="w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                        <p x-text="auth.error" class="text-red-500 text-sm text-center h-4"></p>
+                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-lg transition">Register</button>
+                    </div>
+                </form>
+                <p class="text-center text-sm text-gray-500 mt-6">
+                    Already have an account? <a href="#" @click.prevent="auth.view = 'login'" class="font-semibold text-sky-600 hover:text-sky-500">Login</a>
+                </p>
+            </div>
+            <!-- Forgot Password Flow -->
+            <div x-show="auth.view === 'forgot'">
+                <h2 class="text-3xl font-bold text-center text-gray-800 mb-2">Password Reset</h2>
+                
+                <!-- Step 1: Check for Token -->
+                <div x-show="forgotPassword.view === 'check'">
+                    <p class="text-center text-gray-500 mb-6">Enter your request token to check the status.</p>
+                    <input type="text" x-model="forgotPassword.checkToken" placeholder="Enter your token here" class="w-full px-4 py-2 bg-gray-100 rounded-lg">
+                    <button @click="checkResetStatus()" class="mt-2 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Check Status</button>
+                    <div x-show="forgotPassword.status" class="mt-4 p-4 rounded-lg text-center" :class="{'bg-green-100 text-green-800': forgotPassword.status === 'Approved', 'bg-red-100 text-red-800': forgotPassword.status === 'Rejected', 'bg-yellow-100 text-yellow-800': forgotPassword.status === 'Pending'}">
+                        <p><strong x-text="`Status: ${forgotPassword.status}`"></strong></p>
+                        <p x-text="forgotPassword.adminResponse"></p>
+                        <div x-show="forgotPassword.status === 'Approved'">
+                            <p class="mt-2">Your new password is:</p>
+                            <p class="font-mono bg-gray-200 p-2 my-1 rounded break-all" x-text="forgotPassword.newPassword"></p>
+                        </div>
+                    </div>
+                    <p class="text-center text-sm text-gray-500 mt-4">
+                        Don't have a token? <a href="#" @click.prevent="forgotPassword.view = 'request'" class="font-semibold text-sky-600 hover:text-sky-500">Request a new one</a>.
+                    </p>
                 </div>
-            </form>
-            <p class="text-center text-sm text-gray-500 mt-6">
-                <span x-text="auth.isRegistering ? 'Already have an account?' : 'Don’t have an account?'"></span>
-                <a href="#" @click.prevent="auth.isRegistering = !auth.isRegistering; auth.error = ''" class="font-semibold text-sky-600 hover:text-sky-500" x-text="auth.isRegistering ? 'Login' : 'Register'"></a>
-            </p>
+
+                <!-- Step 2: Request a Token -->
+                <div x-show="forgotPassword.view === 'request'">
+                    <p class="text-center text-gray-500 mb-6">Submit a request for the admin to reset your password.</p>
+                    <div x-show="!forgotPassword.token">
+                        <form @submit.prevent="submitForgotPassword()">
+                            <div class="space-y-4">
+                                <input type="text" x-model="forgotPassword.form.username" placeholder="Your Username" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
+                                <input type="text" x-model="forgotPassword.form.fullName" placeholder="Your Full Name" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
+                                <input type="url" x-model="forgotPassword.form.link" placeholder="Your GitHub or LinkedIn Profile Link" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
+                                <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-lg">Submit Request</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div x-show="forgotPassword.token" class="text-center">
+                        <p class="text-gray-600">Your request has been submitted. Your token is:</p>
+                        <p class="font-mono bg-gray-100 p-2 my-2 rounded break-all" x-text="forgotPassword.token"></p>
+                        <p class="text-sm text-gray-500">Please save this token and check back later. For urgent requests, reach out to Ninkor on LinkedIn.</p>
+                    </div>
+                </div>
+
+                <p class="text-center text-sm text-gray-500 mt-4">
+                    <a href="#" @click.prevent="auth.view = 'login'" class="font-semibold text-sky-600 hover:text-sky-500">Back to Login</a>
+                </p>
+            </div>
         </div>
     </div>
 
@@ -42,33 +110,32 @@
         <header class="bg-white shadow-sm sticky top-0 z-40">
             <div class="container mx-auto p-4 flex justify-between items-center">
                 <div class="flex items-center gap-4">
-                    <!-- Mobile Menu Button -->
                     <div class="md:hidden">
                         <button @click="isMobileMenuOpen = !isMobileMenuOpen">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
                         </button>
                     </div>
-                    <h1 class="text-xl md:text-2xl font-bold text-gray-800" x-text="`Welcome, ${auth.username}!`"></h1>
+                    <a href="#" @click.prevent="currentPage = 'profile'" class="text-xl md:text-2xl font-bold text-gray-800" x-text="`Welcome, ${auth.username}!`"></a>
                 </div>
                 
-                <!-- Desktop Navigation -->
                 <nav class="hidden md:flex items-center gap-4">
                     <a href="#" @click.prevent="currentPage = 'dashboard'" :class="{'text-sky-600 font-semibold': currentPage === 'dashboard'}" class="text-gray-600 hover:text-sky-600">Dashboard</a>
                     <a href="#" @click.prevent="currentPage = 'manageTasks'" :class="{'text-sky-600 font-semibold': currentPage === 'manageTasks'}" class="text-gray-600 hover:text-sky-600">Manage Tasks</a>
                     <a href="#" @click.prevent="currentPage = 'dsaSheet'; getDsaQuestions()" :class="{'text-sky-600 font-semibold': currentPage === 'dsaSheet'}" class="text-gray-600 hover:text-sky-600">DSA Sheet</a>
                     <a href="#" @click.prevent="currentPage = 'history'" :class="{'text-sky-600 font-semibold': currentPage === 'history'}" class="text-gray-600 hover:text-sky-600">History</a>
-                    <a x-show="auth.isAdmin" href="#" @click.prevent="currentPage = 'admin'; getAdminData()" :class="{'text-red-600 font-semibold': currentPage === 'admin'}" class="text-gray-600 hover:text-red-600">Admin</a>
+                    <a x-show="auth.isAdmin" href="#" @click.prevent="currentPage = 'adminQueries'; getPasswordRequests()" :class="{'text-red-600 font-semibold': currentPage === 'adminQueries'}" class="text-gray-600 hover:text-red-600">Queries</a>
+                    <a x-show="auth.isAdmin" href="#" @click.prevent="currentPage = 'adminUsers'; getAdminData()" :class="{'text-red-600 font-semibold': currentPage === 'adminUsers'}" class="text-gray-600 hover:text-red-600">Users</a>
                     <button @click="logout()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition">Logout</button>
                 </nav>
             </div>
 
-            <!-- Mobile Menu -->
             <div x-show="isMobileMenuOpen" @click.away="isMobileMenuOpen = false" x-transition class="md:hidden bg-white border-t">
                 <a href="#" @click.prevent="currentPage = 'dashboard'; isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100">Dashboard</a>
                 <a href="#" @click.prevent="currentPage = 'manageTasks'; isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100">Manage Tasks</a>
                 <a href="#" @click.prevent="currentPage = 'dsaSheet'; getDsaQuestions(); isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100">DSA Sheet</a>
                 <a href="#" @click.prevent="currentPage = 'history'; isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100">History</a>
-                <a x-show="auth.isAdmin" href="#" @click.prevent="currentPage = 'admin'; getAdminData(); isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100 text-red-600">Admin</a>
+                <a x-show="auth.isAdmin" href="#" @click.prevent="currentPage = 'adminQueries'; getPasswordRequests(); isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100 text-red-600">Queries</a>
+                 <a x-show="auth.isAdmin" href="#" @click.prevent="currentPage = 'adminUsers'; getAdminData(); isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100 text-red-600">Users</a>
                 <a href="#" @click.prevent="logout()" class="block py-2 px-4 text-sm hover:bg-gray-100">Logout</a>
             </div>
         </header>
@@ -79,11 +146,8 @@
                 <div class="lg:col-span-2">
                     <h2 class="text-3xl font-bold mb-1" x-text="`Today's Focus: ${currentDate}`"></h2>
                     <p class="text-gray-500 mb-6" x-text="currentDayName"></p>
-                    
                     <div id="schedule-container" class="space-y-4">
-                         <template x-if="todaysTasks.length === 0">
-                            <p class="text-center text-gray-500 bg-white p-8 rounded-xl shadow-sm">No tasks scheduled for today. Go to "Manage Tasks" to add some for the week!</p>
-                        </template>
+                         <template x-if="todaysTasks.length === 0"><p class="text-center text-gray-500 bg-white p-8 rounded-xl shadow-sm">No tasks scheduled for today. Go to "Manage Tasks" to add some for the week!</p></template>
                         <template x-for="task in todaysTasks" :key="task._id">
                             <div class="task-card flex items-center p-5 bg-white rounded-xl shadow-sm border-l-4" :class="{ 'completed': task.completed, 'border-sky-500': !task.completed, 'border-green-500': task.completed }">
                                 <a :href="task.link" target="_blank" class="flex-grow" :class="{'pointer-events-none': !task.link}">
@@ -95,8 +159,6 @@
                         </template>
                     </div>
                 </div>
-
-                <!-- Side Panel (Progress & Reward) -->
                 <div class="lg:col-span-1">
                     <h2 class="text-2xl font-bold mb-4 invisible">Progress</h2>
                     <div class="bg-white p-6 rounded-xl shadow-sm">
@@ -105,8 +167,6 @@
                             <div class="bg-sky-500 h-2.5 rounded-full" :style="`width: ${progress.percentage}%`"></div>
                         </div>
                         <p class="text-center text-sm font-medium text-gray-600 mt-2" x-text="`${progress.completed} / ${progress.total} tasks completed (${progress.percentage}%)`"></p>
-                        
-                        <!-- REWARD SECTION -->
                         <div x-show="isSunday" class="mt-6 pt-4 border-t">
                              <h3 class="font-bold mb-2">Claim Your Reward!</h3>
                              <div x-show="currentWeekLog && currentWeekLog.goalAchieved">
@@ -213,7 +273,13 @@
 
         <!-- Page: DSA Sheet -->
         <main x-show="currentPage === 'dsaSheet'" class="container mx-auto p-4 md:p-8">
-            <h2 class="text-3xl font-bold mb-6">DSA Problem Sheet</h2>
+            <h2 class="text-3xl font-bold mb-2">DSA Problem Sheet</h2>
+            <div class="mb-6">
+                <p class="text-gray-600 mb-1" x-text="`Overall Progress: ${dsaProgress.solved} / ${dsaProgress.total} Questions`"></p>
+                <div class="w-full bg-gray-200 rounded-full h-4">
+                    <div class="bg-gradient-to-r from-sky-500 to-indigo-500 h-4 rounded-full" :style="`width: ${dsaProgress.percentage}%`"></div>
+                </div>
+            </div>
             <div x-show="auth.isAdmin" class="bg-white p-6 rounded-xl shadow-sm mb-8">
                 <h3 class="text-xl font-bold mb-4">Add New DSA Question</h3>
                 <form @submit.prevent="addDsaQuestion()">
@@ -221,35 +287,37 @@
                         <input type="text" x-model="dsaForm.title" placeholder="Question Title" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
                         <input type="url" x-model="dsaForm.link" placeholder="Question Link (LeetCode, GFG, etc.)" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
                     </div>
+                    <div class="mt-4">
+                         <input type="text" x-model="dsaForm.tags" placeholder="Tags (e.g., array, math, string)" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
+                    </div>
                     <button type="submit" class="mt-4 w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-lg transition">Post Question</button>
                 </form>
             </div>
-            <div class="space-y-3">
-                <template x-for="q in dsaQuestions" :key="q._id">
-                    <div class="p-4 bg-white rounded-lg shadow-sm">
-                        <div class="flex justify-between items-center">
-                            <a :href="q.link" target="_blank" class="font-semibold text-lg hover:text-sky-600" x-text="q.title"></a>
-                            <div class="flex items-center gap-4">
-                                <button @click="showCommentsFor = (showCommentsFor === q._id ? null : q._id)" class="text-gray-500 hover:text-sky-600 flex items-center gap-1">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.962 8.962 0 01-2.434-.402l-3.182 1.06a1 1 0 01-1.265-1.265l1.06-3.182A8.962 8.962 0 012 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM4.417 14.583l2.09-.696a1 1 0 01.88.093A6.96 6.96 0 0010 16c3.309 0 6-2.691 6-6s-2.691-6-6-6-6 2.691-6 6c0 1.56.602 2.986 1.583 4.083a1 1 0 01.093.88l-.696 2.09z" clip-rule="evenodd" /></svg>
-                                    <span x-text="q.comments.length"></span>
-                                </button>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="checkbox" @change="toggleDsaSolve(q._id)" :checked="auth.solvedDSA.includes(q._id)" class="h-6 w-6 rounded-md text-green-600 focus:ring-green-500">
-                                    <span class="ml-2 font-semibold" :class="auth.solvedDSA.includes(q._id) ? 'text-green-600' : 'text-gray-600'">Solved</span>
-                                </label>
+            <div class="space-y-4">
+                <template x-for="tag in dsaTags" :key="tag">
+                     <div class="bg-white rounded-xl shadow-sm">
+                        <button @click="activeDsaTag = (activeDsaTag === tag ? null : tag)" class="w-full text-left p-4 flex justify-between items-center">
+                            <div>
+                                <h3 class="text-xl font-semibold" x-text="tag"></h3>
+                                <p class="text-sm text-gray-500" x-text="`${progressByTag[tag].solved} / ${progressByTag[tag].total} solved`"></p>
                             </div>
-                        </div>
-                        <div x-show="showCommentsFor === q._id" x-transition class="mt-4 pt-4 border-t">
-                            <form @submit.prevent="addComment(q._id)">
-                                <input type="text" x-model="commentForm.text" placeholder="Add a comment..." required class="w-full px-3 py-2 bg-gray-100 rounded-lg mb-2">
-                                <button type="submit" class="px-4 py-1 bg-sky-500 text-white text-sm rounded-md hover:bg-sky-600">Post</button>
-                            </form>
-                            <div class="mt-4 space-y-2">
-                                <template x-for="comment in q.comments" :key="comment._id">
-                                    <div class="text-sm">
-                                        <span class="font-semibold" x-text="comment.username"></span>:
-                                        <span class="text-gray-700" x-text="comment.text"></span>
+                            <svg class="w-5 h-5 transition-transform" :class="{'rotate-180': activeDsaTag === tag}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div x-show="activeDsaTag === tag" x-transition class="p-4 border-t">
+                            <div class="space-y-2">
+                                <template x-for="(q, index) in questionsByTag[tag]" :key="q._id">
+                                    <div class="p-3 border-b flex justify-between items-center">
+                                        <div class="flex items-center">
+                                            <span class="text-gray-500 w-6" x-text="`${index + 1}.`"></span>
+                                            <a :href="q.link" target="_blank" class="font-medium hover:text-sky-600" x-text="q.title"></a>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <button x-show="auth.isAdmin" @click="editDsaQuestion(q)" class="text-gray-400 hover:text-blue-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>
+                                            <button x-show="auth.isAdmin" @click="deleteDsaQuestion(q._id)" class="text-gray-400 hover:text-red-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>
+                                            <label class="flex items-center cursor-pointer">
+                                                <input type="checkbox" @change="toggleDsaSolve(q._id)" :checked="auth.solvedDSA.includes(q._id)" class="h-5 w-5 rounded-md text-green-600 focus:ring-green-500">
+                                            </label>
+                                        </div>
                                     </div>
                                 </template>
                             </div>
@@ -259,9 +327,9 @@
             </div>
         </main>
         
-        <!-- Page: Admin Dashboard -->
-        <main x-show="currentPage === 'admin'" class="container mx-auto p-4 md:p-8">
-            <h2 class="text-3xl font-bold mb-6">Admin Dashboard</h2>
+        <!-- Page: Admin Users -->
+        <main x-show="currentPage === 'adminUsers'" class="container mx-auto p-4 md:p-8">
+            <h2 class="text-3xl font-bold mb-6">Admin Dashboard: All Users</h2>
             <div class="space-y-4">
                 <template x-for="user in allUsers" :key="user._id">
                     <div class="bg-white rounded-xl shadow-sm">
@@ -272,18 +340,60 @@
                         <div x-show="expandedUser === user._id" x-transition class="p-4 border-t">
                             <h4 class="font-bold mb-2">Weekly Task Templates:</h4>
                             <ul class="list-disc list-inside text-gray-700 mb-4">
-                                <template x-for="task in user.weeklyTasks" :key="task._id">
-                                    <li x-text="`${task.title} (${task.duration} hours)`"></li>
-                                </template>
+                                <template x-for="task in user.weeklyTasks" :key="task._id"><li x-text="`${task.title} (${task.duration} hours)`"></li></template>
                                 <template x-if="user.weeklyTasks.length === 0"><li>No weekly tasks defined.</li></template>
                             </ul>
                             <h4 class="font-bold mb-2">Weekly Goal History:</h4>
                             <ul class="list-disc list-inside text-gray-700">
-                                <template x-for="log in user.history.slice(0, 5)" :key="log.weekOf">
-                                    <li x-text="`Week of ${formatDate(log.weekOf)} - ${log.goalAchieved ? 'Goal Met' : 'Missed'}`"></li>
-                                </template>
+                                <template x-for="log in user.history.slice(0, 5)" :key="log.weekOf"><li x-text="`Week of ${formatDate(log.weekOf)} - ${log.goalAchieved ? 'Goal Met' : 'Missed'}`"></li></template>
                                 <template x-if="user.history.length === 0"><li>No history yet.</li></template>
                             </ul>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </main>
+        
+        <!-- Page: Profile -->
+        <main x-show="currentPage === 'profile'" class="container mx-auto p-4 md:p-8">
+             <h2 class="text-3xl font-bold mb-6">My Profile</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <h3 class="text-xl font-bold mb-4">My Stats</h3>
+                    <p><strong>Current Streak:</strong> <span x-text="streak"></span> weeks</p>
+                    <p><strong>Total DSA Solved:</strong> <span x-text="dsaProgress.solved"></span> / <span x-text="dsaProgress.total"></span></p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <h3 class="text-xl font-bold mb-4">Change Password</h3>
+                    <form @submit.prevent="changePassword()">
+                        <div class="space-y-3">
+                            <input type="password" x-model="passwordForm.currentPassword" placeholder="Current Password" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
+                            <input type="password" x-model="passwordForm.newPassword" placeholder="New Password" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
+                            <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-lg">Change Password</button>
+                            <p x-text="passwordForm.message" class="text-sm h-4" :class="passwordForm.success ? 'text-green-600' : 'text-red-500'"></p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Page: Admin Queries -->
+        <main x-show="currentPage === 'adminQueries'" class="container mx-auto p-4 md:p-8">
+            <h2 class="text-3xl font-bold mb-6">Password Reset Queries</h2>
+            <div class="space-y-4">
+                <template x-if="passwordRequests.length === 0"><p>No pending requests.</p></template>
+                <template x-for="req in passwordRequests" :key="req._id">
+                    <div class="bg-white p-4 rounded-xl shadow-sm">
+                        <p><strong>User:</strong> <span x-text="req.username"></span></p>
+                        <p><strong>Full Name:</strong> <span x-text="req.fullName"></span></p>
+                        <p><strong>Link:</strong> <a :href="req.link" target="_blank" class="text-sky-600" x-text="req.link"></a></p>
+                        <div class="mt-4">
+                            <input type="text" x-model="req.newPassword" placeholder="Enter New Password..." class="w-full px-3 py-2 bg-gray-100 rounded-lg mb-2">
+                            <input type="text" x-model="req.adminResponse" placeholder="Response message (optional)" class="w-full px-3 py-2 bg-gray-100 rounded-lg mb-2">
+                            <div class="flex gap-4">
+                                <button @click="handleResetRequest(req, 'Rejected')" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg">Reject</button>
+                                <button @click="handleResetRequest(req, 'Approved')" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg">Approve & Reset</button>
+                            </div>
                         </div>
                     </div>
                 </template>
@@ -293,7 +403,7 @@
 
     <!-- Footer -->
     <footer x-show="auth.token" class="w-full text-center p-4 text-gray-500 text-sm mt-8">
-        <p class="font-bold">Developed by Ninkor.</p>
+        <p class="font-bold">Developed by Ninkor B.</p>
         <p class="max-w-prose mx-auto my-2">This is a personal project to demonstrate full-stack development skills using the MERN stack (MongoDB, Express, Node.js) with a modern front-end. It's designed to be a simple, effective tool for daily planning and motivation.</p>
         <div class="flex justify-center gap-4 mt-2">
             <a href="https://github.com/NinkorB" target="_blank" class="hover:text-sky-600">GitHub</a>
@@ -306,15 +416,16 @@
         return {
             API_URL: 'https://myweekly.onrender.com',
             currentPage: 'dashboard',
-            auth: { token: null, username: null, reward: '', dayStartTime: 9, dayEndTime: 21, isAdmin: false, solvedDSA: [], isRegistering: false, error: '' },
-            form: { username: '', password: '', githubUrl: '' },
+            auth: { token: null, username: null, reward: '', dayStartTime: 9, dayEndTime: 21, isAdmin: false, solvedDSA: [], isRegistering: false, error: '', view: 'login' },
+            form: { username: '', password: '', githubUrl: '', fullName: '' },
             tasks: [], 
             weeklyTasks: [],
             history: [],
             dsaQuestions: [],
             allUsers: [],
             expandedUser: null,
-            dsaForm: { title: '', link: '' },
+            dsaForm: { title: '', link: '', tags: '' },
+            editingDsa: null,
             showCommentsFor: null,
             commentForm: { text: '' },
             weeklyTaskForm: { title: '', duration: null, link: '', automate: false, preferredSlots: [], startTime: null },
@@ -323,6 +434,10 @@
             newReward: '',
             settingsForm: { dayStartTime: 9, dayEndTime: 21 },
             isMobileMenuOpen: false,
+            forgotPassword: { view: 'check', form: { username: '', fullName: '', link: '' }, token: null, checkToken: '', status: '', adminResponse: '', newPassword: '' },
+            passwordForm: { currentPassword: '', newPassword: '', message: '', success: false },
+            passwordRequests: [],
+            
             get currentDate() { return new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); },
             get currentDayName() { return new Date().toLocaleDateString('en-US', { weekday: 'long' }); },
             get isSunday() { return new Date().getDay() === 0; },
@@ -364,6 +479,36 @@
                 }
                 return currentStreak;
             },
+            get dsaTags() {
+                const allTags = this.dsaQuestions.flatMap(q => q.tags);
+                return [...new Set(allTags)];
+            },
+            get questionsByTag() {
+                return this.dsaQuestions.reduce((acc, q) => {
+                    (q.tags || []).forEach(tag => {
+                        if (!acc[tag]) acc[tag] = [];
+                        acc[tag].push(q);
+                    });
+                    return acc;
+                }, {});
+            },
+            get dsaProgress() {
+                const total = this.dsaQuestions.length;
+                if (total === 0) return { solved: 0, total: 0, percentage: 0 };
+                const solved = this.auth.solvedDSA.length;
+                return { solved, total, percentage: Math.round((solved / total) * 100) };
+            },
+            get progressByTag() {
+                const progress = {};
+                this.dsaTags.forEach(tag => {
+                    const questionsInTag = this.questionsByTag[tag] || [];
+                    const total = questionsInTag.length;
+                    const solved = questionsInTag.filter(q => this.auth.solvedDSA.includes(q._id)).length;
+                    progress[tag] = { solved, total, percentage: total > 0 ? Math.round((solved / total) * 100) : 0 };
+                });
+                return progress;
+            },
+            
             init() {
                 const token = localStorage.getItem('myweekly_token');
                 if (token) this.verifyToken(token);
@@ -444,7 +589,7 @@
                 this.currentPage = 'dashboard';
             },
             logout() {
-                this.auth = { token: null, username: null, reward: '', dayStartTime: 9, dayEndTime: 21, isAdmin: false, solvedDSA: [], isRegistering: false, error: '' };
+                this.auth = { token: null, username: null, reward: '', dayStartTime: 9, dayEndTime: 21, isAdmin: false, solvedDSA: [], isRegistering: false, error: '', view: 'login' };
                 localStorage.removeItem('myweekly_token');
             },
             async addWeeklyTask() {
@@ -498,23 +643,40 @@
             async addDsaQuestion() {
                 try {
                     const newQuestion = await this.apiCall('/api/dsa', 'POST', this.dsaForm);
-                    this.dsaQuestions.unshift(newQuestion);
-                    this.dsaForm = { title: '', link: '' };
+                    this.dsaQuestions.push(newQuestion);
+                    this.dsaForm = { title: '', link: '', tags: '' };
                 } catch (error) { console.error("Failed to add DSA question:", error); }
+            },
+            async editDsaQuestion(question) {
+                const newTitle = prompt("Enter new title:", question.title);
+                const newLink = prompt("Enter new link:", question.link);
+                const newTags = prompt("Enter new tags (comma-separated):", question.tags.join(', '));
+                if (newTitle && newLink) {
+                    try {
+                        const updatedQuestion = await this.apiCall(`/api/dsa/${question._id}`, 'PUT', { title: newTitle, link: newLink, tags: newTags });
+                        const index = this.dsaQuestions.findIndex(q => q._id === question._id);
+                        this.dsaQuestions[index] = updatedQuestion;
+                    } catch (error) { console.error("Failed to edit question:", error); }
+                }
+            },
+            async deleteDsaQuestion(questionId) {
+                if(confirm('Are you sure you want to delete this question permanently?')) {
+                    try {
+                        await this.apiCall(`/api/dsa/${questionId}`, 'DELETE');
+                        this.dsaQuestions = this.dsaQuestions.filter(q => q._id !== questionId);
+                    } catch (error) { console.error("Failed to delete question:", error); }
+                }
             },
             async toggleDsaSolve(questionId) {
                 try {
-                    const updatedSolved = await this.apiCall(`/api/dsa/${questionId}/solve`, 'PUT');
-                    this.auth.solvedDSA = updatedSolved;
+                    this.auth.solvedDSA = await this.apiCall(`/api/dsa/${questionId}/solve`, 'PUT');
                 } catch (error) { console.error("Failed to toggle solve status:", error); }
             },
             async addComment(questionId) {
                 try {
                     const updatedComments = await this.apiCall(`/api/dsa/${questionId}/comment`, 'POST', this.commentForm);
                     const question = this.dsaQuestions.find(q => q._id === questionId);
-                    if (question) {
-                        question.comments = updatedComments;
-                    }
+                    if (question) question.comments = updatedComments;
                     this.commentForm.text = '';
                 } catch (error) { console.error("Failed to add comment:", error); }
             },
@@ -527,6 +689,55 @@
                     alert('You do not have permission to view this page.');
                     this.currentPage = 'dashboard';
                 }
+            },
+            async submitForgotPassword() {
+                try {
+                    const data = await this.apiCall('/api/auth/forgot-password', 'POST', this.forgotPassword.form);
+                    this.forgotPassword.token = data.token;
+                } catch (error) { alert(error.message); }
+            },
+            async checkResetStatus() {
+                try {
+                    const token = this.forgotPassword.checkToken;
+                    if (!token) {
+                        alert('Please enter a token.');
+                        return;
+                    }
+                    const data = await this.apiCall(`/api/auth/reset-status/${token}`);
+                    this.forgotPassword.status = data.status;
+                    this.forgotPassword.adminResponse = data.adminResponse;
+                    if (data.status === 'Approved') {
+                        this.forgotPassword.newPassword = data.newPassword;
+                    }
+                } catch (error) { 
+                    this.forgotPassword.status = 'Invalid';
+                    this.forgotPassword.adminResponse = 'Token not found or invalid.';
+                }
+            },
+            async changePassword() {
+                try {
+                    const data = await this.apiCall('/api/auth/change-password', 'PUT', this.passwordForm);
+                    this.passwordForm.message = data.msg;
+                    this.passwordForm.success = true;
+                    this.passwordForm.currentPassword = '';
+                    this.passwordForm.newPassword = '';
+                } catch (error) {
+                    this.passwordForm.message = error.message;
+                    this.passwordForm.success = false;
+                }
+            },
+            async getPasswordRequests() {
+                if (!this.auth.isAdmin) return;
+                try {
+                    this.passwordRequests = await this.apiCall('/api/admin/password-requests');
+                } catch (error) { console.error("Failed to fetch requests:", error); }
+            },
+            async handleResetRequest(req, status) {
+                try {
+                    const body = { status, newPassword: req.newPassword, adminResponse: req.adminResponse };
+                    await this.apiCall(`/api/admin/password-requests/${req._id}`, 'PUT', body);
+                    this.passwordRequests = this.passwordRequests.filter(r => r._id !== req._id);
+                } catch (error) { alert('Failed to process request.'); }
             }
         }
     }
