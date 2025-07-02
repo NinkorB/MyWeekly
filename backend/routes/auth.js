@@ -5,11 +5,7 @@ const authMiddleware = require('../middleware/auth');
 const { scheduleWeeklyTasks } = require('../utils/scheduler');
 
 const router = express.Router();
-
-// Generate JWT Token
-const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '1h' }); 
-};
+const generateToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
 router.post('/register', async (req, res) => {
     const { username, password, githubUrl } = req.body;
