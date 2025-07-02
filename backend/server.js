@@ -5,6 +5,10 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const taskRoutes = require('./routes/tasks');
 
+
+console.log('JWT_SECRET on startup:', process.env.JWT_SECRET);
+
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
