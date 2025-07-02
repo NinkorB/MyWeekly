@@ -19,7 +19,7 @@ router.get('/', authMiddleware, async (req, res) => {
         res.json(questions);
     } catch (err) { 
         console.error("Error fetching DSA questions:", err);
-        res.status(500).send('Server Error'); 
+        res.status(500).json({ msg: err.message }); 
     }
 });
 
@@ -32,7 +32,7 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
         res.status(201).json(newQuestion);
     } catch (err) { 
         console.error("Error creating DSA question:", err);
-        res.status(500).send('Server Error'); 
+        res.status(500).json({ msg: err.message }); 
     }
 });
 
@@ -48,7 +48,7 @@ router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
         res.json(updatedQuestion);
     } catch (err) { 
         console.error("Error updating DSA question:", err);
-        res.status(500).send('Server Error'); 
+        res.status(500).json({ msg: err.message }); 
     }
 });
 
@@ -59,7 +59,7 @@ router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
         res.json({ msg: 'Question deleted' });
     } catch (err) { 
         console.error("Error deleting DSA question:", err);
-        res.status(500).send('Server Error'); 
+        res.status(500).json({ msg: err.message }); 
     }
 });
 
@@ -77,7 +77,7 @@ router.put('/:id/solve', authMiddleware, async (req, res) => {
         res.json(user.solvedDSA);
     } catch (err) { 
         console.error("Error toggling DSA solve status:", err);
-        res.status(500).send('Server Error'); 
+        res.status(500).json({ msg: err.message }); 
     }
 });
 
@@ -94,7 +94,7 @@ router.post('/:id/comment', authMiddleware, async (req, res) => {
         res.status(201).json(question.comments);
     } catch (err) { 
         console.error("Error adding comment:", err);
-        res.status(500).send('Server Error'); 
+        res.status(500).json({ msg: err.message }); 
     }
 });
 
