@@ -29,6 +29,7 @@ const weekLogSchema = new mongoose.Schema({
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true, trim: true },
     password: { type: String, required: true },
+    fullName: { type: String, default: '' },
     githubUrl: { type: String, trim: true },
     reward: { type: String, default: 'Enjoy 2 hours of guilt-free fun!' },
     dayStartTime: { type: Number, default: 9 },
@@ -57,4 +58,3 @@ userSchema.methods.matchPassword = async function(enteredPassword) {
 
 const User = mongoose.model('User', userSchema);
 module.exports = User;
-
