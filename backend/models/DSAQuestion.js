@@ -10,9 +10,9 @@ const dsaQuestionSchema = new mongoose.Schema({
     title: { type: String, required: true },
     link: { type: String, required: true, unique: true },
     platform: { type: String, default: 'LeetCode' },
+    tags: [{ type: String, trim: true }],
     comments: [commentSchema]
 }, { timestamps: true });
 
 const DSAQuestion = mongoose.model('DSAQuestion', dsaQuestionSchema);
 module.exports = DSAQuestion;
-
