@@ -15,17 +15,39 @@ const adminMiddleware = (req, res, next) => {
 
 router.get('/', authMiddleware, async (req, res) => {
     try {
-        const questions = await DSAQuestion.find().sort({ createdAt: -1 });
+        const questions = await DSAQuestion.find().sort({ createdAt: 1 });
         res.json(questions);
     } catch (err) { res.status(500).send('Server Error'); }
 });
 
 router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-        const { title, link, platform } = req.body;
-        const newQuestion = new DSAQuestion({ title, link, platform });
+        const { title, link, platform, tags } = req.body;
+        const tagsArray = tags ? tags.split(',').map(tag => tag.trim()) : [];
+        const newQuestion = new DSAQuestion({ title, link, platform, tags: tagsArray });
         await newQuestion.save();
         res.status(201).json(newQuestion);
+    } catch (err) { res.status(500).send('Server Error'); }
+});
+
+router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { title, link, tags } = req.body;
+        const tagsArray = tags ? tags.split(',').map(tag => tag.trim()) : [];
+        const updatedQuestion = await DSAQuestion.findByIdAndUpdate(
+            req.params.id,
+            { title, link, tags: tagsArray },
+            { new: true }
+        );
+        res.json(updatedQuestion);
+    } catch (err) { res.status(500).send('Server Error'); }
+});
+
+router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        await DSAQuestion.findByIdAndDelete(req.params.id);
+        await User.updateMany({}, { $pull: { solvedDSA: req.params.id } });
+        res.json({ msg: 'Question deleted' });
     } catch (err) { res.status(500).send('Server Error'); }
 });
 
