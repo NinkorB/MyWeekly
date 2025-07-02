@@ -73,7 +73,8 @@ router.put('/settings', authMiddleware, async (req, res) => {
 router.post('/forgot-password', async (req, res) => {
     try {
         const { username, fullName, link } = req.body;
-        const token = crypto.randomBytes(20).toString('hex');
+        // Generate a 5-character uppercase alphanumeric token
+        const token = crypto.randomBytes(3).toString('hex').slice(0, 5).toUpperCase();
         const newResetRequest = new PasswordReset({ username, fullName, link, token });
         await newResetRequest.save();
         res.status(201).json({ msg: 'Request submitted. Please check back later with your token.', token });
@@ -82,7 +83,7 @@ router.post('/forgot-password', async (req, res) => {
 
 router.get('/reset-status/:token', async (req, res) => {
     try {
-        const request = await PasswordReset.findOne({ token: req.params.token });
+        const request = await PasswordReset.findOne({ token: req.params.token.toUpperCase() });
         if (!request) return res.status(404).json({ msg: 'Invalid token.' });
         res.json(request);
     } catch (err) { res.status(500).send('Server Error'); }
