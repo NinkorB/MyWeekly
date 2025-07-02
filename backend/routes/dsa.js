@@ -1,4 +1,3 @@
-//dsa
 const express = require('express');
 const User = require('../models/User');
 const DSAQuestion = require('../models/DSAQuestion');
