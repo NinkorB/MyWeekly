@@ -1,4 +1,3 @@
-//dsa
 const express = require('express');
 const User = require('../models/User');
 const DSAQuestion = require('../models/DSAQuestion');
@@ -18,7 +17,10 @@ router.get('/', authMiddleware, async (req, res) => {
     try {
         const questions = await DSAQuestion.find().sort({ createdAt: 1 });
         res.json(questions);
-    } catch (err) { res.status(500).send('Server Error'); }
+    } catch (err) { 
+        console.error("Error fetching DSA questions:", err);
+        res.status(500).send('Server Error'); 
+    }
 });
 
 router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
@@ -28,7 +30,10 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
         const newQuestion = new DSAQuestion({ title, link, platform, tags: tagsArray });
         await newQuestion.save();
         res.status(201).json(newQuestion);
-    } catch (err) { res.status(500).send('Server Error'); }
+    } catch (err) { 
+        console.error("Error creating DSA question:", err);
+        res.status(500).send('Server Error'); 
+    }
 });
 
 router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
@@ -41,7 +46,10 @@ router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
             { new: true }
         );
         res.json(updatedQuestion);
-    } catch (err) { res.status(500).send('Server Error'); }
+    } catch (err) { 
+        console.error("Error updating DSA question:", err);
+        res.status(500).send('Server Error'); 
+    }
 });
 
 router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
@@ -49,7 +57,10 @@ router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
         await DSAQuestion.findByIdAndDelete(req.params.id);
         await User.updateMany({}, { $pull: { solvedDSA: req.params.id } });
         res.json({ msg: 'Question deleted' });
-    } catch (err) { res.status(500).send('Server Error'); }
+    } catch (err) { 
+        console.error("Error deleting DSA question:", err);
+        res.status(500).send('Server Error'); 
+    }
 });
 
 router.put('/:id/solve', authMiddleware, async (req, res) => {
@@ -64,7 +75,10 @@ router.put('/:id/solve', authMiddleware, async (req, res) => {
         }
         await user.save();
         res.json(user.solvedDSA);
-    } catch (err) { res.status(500).send('Server Error'); }
+    } catch (err) { 
+        console.error("Error toggling DSA solve status:", err);
+        res.status(500).send('Server Error'); 
+    }
 });
 
 router.post('/:id/comment', authMiddleware, async (req, res) => {
@@ -78,7 +92,10 @@ router.post('/:id/comment', authMiddleware, async (req, res) => {
         question.comments.unshift(newComment);
         await question.save();
         res.status(201).json(question.comments);
-    } catch (err) { res.status(500).send('Server Error'); }
+    } catch (err) { 
+        console.error("Error adding comment:", err);
+        res.status(500).send('Server Error'); 
+    }
 });
 
 module.exports = router;
