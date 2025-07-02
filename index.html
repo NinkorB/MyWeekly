@@ -39,15 +39,37 @@
 
     <!-- Main App -->
     <div x-show="auth.token" x-cloak class="flex-grow">
-        <header class="bg-white shadow-sm">
+        <header class="bg-white shadow-sm sticky top-0 z-40">
             <div class="container mx-auto p-4 flex justify-between items-center">
-                <h1 class="text-2xl font-bold text-gray-800">MyWeekly</h1>
-                <nav class="flex items-center gap-4">
+                <div class="flex items-center gap-4">
+                    <!-- Mobile Menu Button -->
+                    <div class="md:hidden">
+                        <button @click="isMobileMenuOpen = !isMobileMenuOpen">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                        </button>
+                    </div>
+                    <h1 class="text-xl md:text-2xl font-bold text-gray-800" x-text="`Welcome, ${auth.username}!`"></h1>
+                </div>
+                
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex items-center gap-4">
                     <a href="#" @click.prevent="currentPage = 'dashboard'" :class="{'text-sky-600 font-semibold': currentPage === 'dashboard'}" class="text-gray-600 hover:text-sky-600">Dashboard</a>
                     <a href="#" @click.prevent="currentPage = 'manageTasks'" :class="{'text-sky-600 font-semibold': currentPage === 'manageTasks'}" class="text-gray-600 hover:text-sky-600">Manage Tasks</a>
+                    <a href="#" @click.prevent="currentPage = 'dsaSheet'; getDsaQuestions()" :class="{'text-sky-600 font-semibold': currentPage === 'dsaSheet'}" class="text-gray-600 hover:text-sky-600">DSA Sheet</a>
                     <a href="#" @click.prevent="currentPage = 'history'" :class="{'text-sky-600 font-semibold': currentPage === 'history'}" class="text-gray-600 hover:text-sky-600">History</a>
+                    <a x-show="auth.isAdmin" href="#" @click.prevent="currentPage = 'admin'; getAdminData()" :class="{'text-red-600 font-semibold': currentPage === 'admin'}" class="text-gray-600 hover:text-red-600">Admin</a>
                     <button @click="logout()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition">Logout</button>
                 </nav>
+            </div>
+
+            <!-- Mobile Menu -->
+            <div x-show="isMobileMenuOpen" @click.away="isMobileMenuOpen = false" x-transition class="md:hidden bg-white border-t">
+                <a href="#" @click.prevent="currentPage = 'dashboard'; isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100">Dashboard</a>
+                <a href="#" @click.prevent="currentPage = 'manageTasks'; isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100">Manage Tasks</a>
+                <a href="#" @click.prevent="currentPage = 'dsaSheet'; getDsaQuestions(); isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100">DSA Sheet</a>
+                <a href="#" @click.prevent="currentPage = 'history'; isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100">History</a>
+                <a x-show="auth.isAdmin" href="#" @click.prevent="currentPage = 'admin'; getAdminData(); isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100 text-red-600">Admin</a>
+                <a href="#" @click.prevent="logout()" class="block py-2 px-4 text-sm hover:bg-gray-100">Logout</a>
             </div>
         </header>
 
@@ -103,8 +125,6 @@
         <!-- Page: Manage Tasks -->
         <main x-show="currentPage === 'manageTasks'" class="container mx-auto p-4 md:p-8">
             <h2 class="text-3xl font-bold mb-6">Manage Weekly Tasks</h2>
-
-            <!-- Day Schedule Settings -->
             <div class="mb-8 bg-white p-6 rounded-xl shadow-sm">
                 <h3 class="text-xl font-bold mb-4">Day Schedule Settings</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -121,8 +141,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Add Task Form -->
             <div class="bg-white p-6 rounded-xl shadow-sm">
                 <h3 class="text-xl font-bold mb-4">Add New Weekly Task</h3>
                 <form @submit.prevent="addWeeklyTask()">
@@ -139,12 +157,10 @@
                             <span class="ml-2 text-gray-700">Automate Scheduling</span>
                         </label>
                     </div>
-                    <!-- Manual Scheduling -->
                     <div x-show="!weeklyTaskForm.automate" class="mt-4">
                         <label for="startTime" class="block text-sm font-medium text-gray-700">Start Time (e.g., 10 for 10am)</label>
                         <input type="number" id="startTime" x-model.number="weeklyTaskForm.startTime" placeholder="Enter start hour (0-23)" class="mt-1 w-full px-4 py-2 bg-gray-100 border-transparent rounded-lg focus:ring-2 focus:ring-sky-500 focus:outline-none">
                     </div>
-                    <!-- Automated Scheduling -->
                     <div x-show="weeklyTaskForm.automate" class="mt-4 p-4 bg-sky-50 rounded-lg">
                         <h4 class="font-semibold mb-2">Automation Options</h4>
                         <p class="text-sm text-gray-600 mb-2">Select your preferred time slots for this task.</p>
@@ -160,12 +176,9 @@
                     <button type="submit" class="mt-4 w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-lg transition">Add Weekly Task</button>
                 </form>
             </div>
-
             <h3 class="text-2xl font-bold mt-8 mb-4">Your Weekly Task List</h3>
             <div class="space-y-3">
-                <template x-if="weeklyTasks.length === 0">
-                    <p class="text-center text-gray-500">No weekly tasks defined yet.</p>
-                </template>
+                <template x-if="weeklyTasks.length === 0"><p class="text-center text-gray-500">No weekly tasks defined yet.</p></template>
                 <template x-for="task in weeklyTasks" :key="task._id">
                      <div class="p-4 bg-white rounded-lg shadow-sm flex justify-between items-center">
                         <span x-text="`${task.title} (${task.duration} hours)`"></span>
@@ -185,7 +198,6 @@
                 <p class="text-6xl font-bold text-sky-600 my-2" x-text="streak"></p>
                 <p class="text-gray-500">consecutive weeks with your goal achieved!</p>
             </div>
-
             <div class="space-y-3">
                 <template x-for="log in sortedHistory" :key="log.weekOf">
                     <div class="p-4 bg-white rounded-lg shadow-sm flex justify-between items-center">
@@ -198,11 +210,90 @@
                 </template>
             </div>
         </main>
+
+        <!-- Page: DSA Sheet -->
+        <main x-show="currentPage === 'dsaSheet'" class="container mx-auto p-4 md:p-8">
+            <h2 class="text-3xl font-bold mb-6">DSA Problem Sheet</h2>
+            <div x-show="auth.isAdmin" class="bg-white p-6 rounded-xl shadow-sm mb-8">
+                <h3 class="text-xl font-bold mb-4">Add New DSA Question</h3>
+                <form @submit.prevent="addDsaQuestion()">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" x-model="dsaForm.title" placeholder="Question Title" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
+                        <input type="url" x-model="dsaForm.link" placeholder="Question Link (LeetCode, GFG, etc.)" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
+                    </div>
+                    <button type="submit" class="mt-4 w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-lg transition">Post Question</button>
+                </form>
+            </div>
+            <div class="space-y-3">
+                <template x-for="q in dsaQuestions" :key="q._id">
+                    <div class="p-4 bg-white rounded-lg shadow-sm">
+                        <div class="flex justify-between items-center">
+                            <a :href="q.link" target="_blank" class="font-semibold text-lg hover:text-sky-600" x-text="q.title"></a>
+                            <div class="flex items-center gap-4">
+                                <button @click="showCommentsFor = (showCommentsFor === q._id ? null : q._id)" class="text-gray-500 hover:text-sky-600 flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.962 8.962 0 01-2.434-.402l-3.182 1.06a1 1 0 01-1.265-1.265l1.06-3.182A8.962 8.962 0 012 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM4.417 14.583l2.09-.696a1 1 0 01.88.093A6.96 6.96 0 0010 16c3.309 0 6-2.691 6-6s-2.691-6-6-6-6 2.691-6 6c0 1.56.602 2.986 1.583 4.083a1 1 0 01.093.88l-.696 2.09z" clip-rule="evenodd" /></svg>
+                                    <span x-text="q.comments.length"></span>
+                                </button>
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="checkbox" @change="toggleDsaSolve(q._id)" :checked="auth.solvedDSA.includes(q._id)" class="h-6 w-6 rounded-md text-green-600 focus:ring-green-500">
+                                    <span class="ml-2 font-semibold" :class="auth.solvedDSA.includes(q._id) ? 'text-green-600' : 'text-gray-600'">Solved</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div x-show="showCommentsFor === q._id" x-transition class="mt-4 pt-4 border-t">
+                            <form @submit.prevent="addComment(q._id)">
+                                <input type="text" x-model="commentForm.text" placeholder="Add a comment..." required class="w-full px-3 py-2 bg-gray-100 rounded-lg mb-2">
+                                <button type="submit" class="px-4 py-1 bg-sky-500 text-white text-sm rounded-md hover:bg-sky-600">Post</button>
+                            </form>
+                            <div class="mt-4 space-y-2">
+                                <template x-for="comment in q.comments" :key="comment._id">
+                                    <div class="text-sm">
+                                        <span class="font-semibold" x-text="comment.username"></span>:
+                                        <span class="text-gray-700" x-text="comment.text"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </main>
+        
+        <!-- Page: Admin Dashboard -->
+        <main x-show="currentPage === 'admin'" class="container mx-auto p-4 md:p-8">
+            <h2 class="text-3xl font-bold mb-6">Admin Dashboard</h2>
+            <div class="space-y-4">
+                <template x-for="user in allUsers" :key="user._id">
+                    <div class="bg-white rounded-xl shadow-sm">
+                        <button @click="expandedUser = (expandedUser === user._id ? null : user._id)" class="w-full text-left p-4 flex justify-between items-center">
+                            <span class="text-lg font-semibold" x-text="user.username"></span>
+                            <svg class="w-5 h-5 transition-transform" :class="{'rotate-180': expandedUser === user._id}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div x-show="expandedUser === user._id" x-transition class="p-4 border-t">
+                            <h4 class="font-bold mb-2">Weekly Task Templates:</h4>
+                            <ul class="list-disc list-inside text-gray-700 mb-4">
+                                <template x-for="task in user.weeklyTasks" :key="task._id">
+                                    <li x-text="`${task.title} (${task.duration} hours)`"></li>
+                                </template>
+                                <template x-if="user.weeklyTasks.length === 0"><li>No weekly tasks defined.</li></template>
+                            </ul>
+                            <h4 class="font-bold mb-2">Weekly Goal History:</h4>
+                            <ul class="list-disc list-inside text-gray-700">
+                                <template x-for="log in user.history.slice(0, 5)" :key="log.weekOf">
+                                    <li x-text="`Week of ${formatDate(log.weekOf)} - ${log.goalAchieved ? 'Goal Met' : 'Missed'}`"></li>
+                                </template>
+                                <template x-if="user.history.length === 0"><li>No history yet.</li></template>
+                            </ul>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </main>
     </div>
 
     <!-- Footer -->
     <footer x-show="auth.token" class="w-full text-center p-4 text-gray-500 text-sm mt-8">
-        <p class="font-bold">Developed by Ninkor B.</p>
+        <p class="font-bold">Developed by Ninkor.</p>
         <p class="max-w-prose mx-auto my-2">This is a personal project to demonstrate full-stack development skills using the MERN stack (MongoDB, Express, Node.js) with a modern front-end. It's designed to be a simple, effective tool for daily planning and motivation.</p>
         <div class="flex justify-center gap-4 mt-2">
             <a href="https://github.com/NinkorB" target="_blank" class="hover:text-sky-600">GitHub</a>
@@ -213,29 +304,31 @@
 <script>
     function app() {
         return {
-            // --- CONFIG ---
             API_URL: 'https://myweekly.onrender.com',
-            
-            // --- STATE ---
             currentPage: 'dashboard',
-            auth: { token: null, username: null, reward: '', dayStartTime: 9, dayEndTime: 21, isRegistering: false, error: '' },
+            auth: { token: null, username: null, reward: '', dayStartTime: 9, dayEndTime: 21, isAdmin: false, solvedDSA: [], isRegistering: false, error: '' },
             form: { username: '', password: '', githubUrl: '' },
             tasks: [], 
             weeklyTasks: [],
             history: [],
+            dsaQuestions: [],
+            allUsers: [],
+            expandedUser: null,
+            dsaForm: { title: '', link: '' },
+            showCommentsFor: null,
+            commentForm: { text: '' },
             weeklyTaskForm: { title: '', duration: null, link: '', automate: false, preferredSlots: [], startTime: null },
             timeSlots: ['Morning', 'Afternoon', 'Evening'],
             showEditReward: false,
             newReward: '',
             settingsForm: { dayStartTime: 9, dayEndTime: 21 },
-
-            // --- COMPUTED PROPERTIES ---
+            isMobileMenuOpen: false,
             get currentDate() { return new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); },
             get currentDayName() { return new Date().toLocaleDateString('en-US', { weekday: 'long' }); },
             get isSunday() { return new Date().getDay() === 0; },
             get todaysTasks() {
                 let dayIndex = new Date().getDay();
-                if (dayIndex === 0) dayIndex = 7; // Treat Sunday as 7 for consistency
+                if (dayIndex === 0) dayIndex = 7;
                 return this.tasks.filter(task => task.dayOfWeek === dayIndex).sort((a,b) => parseInt(a.time) - parseInt(b.time));
             },
             get currentWeekLog() {
@@ -271,8 +364,10 @@
                 }
                 return currentStreak;
             },
-            
-            // --- METHODS ---
+            init() {
+                const token = localStorage.getItem('myweekly_token');
+                if (token) this.verifyToken(token);
+            },
             getStartOfWeek(date) {
                 const d = new Date(date);
                 d.setHours(0, 0, 0, 0);
@@ -335,6 +430,8 @@
             setAuthData(data) {
                 this.auth.token = data.token;
                 this.auth.username = data.user.username;
+                this.auth.isAdmin = data.user.isAdmin || false;
+                this.auth.solvedDSA = data.user.solvedDSA || [];
                 this.auth.reward = data.user.reward || 'Enjoy 2 hours of guilt-free fun!';
                 this.auth.dayStartTime = data.user.dayStartTime || 9;
                 this.auth.dayEndTime = data.user.dayEndTime || 21;
@@ -347,7 +444,7 @@
                 this.currentPage = 'dashboard';
             },
             logout() {
-                this.auth = { token: null, username: null, reward: '', dayStartTime: 9, dayEndTime: 21, isRegistering: false, error: '' };
+                this.auth = { token: null, username: null, reward: '', dayStartTime: 9, dayEndTime: 21, isAdmin: false, solvedDSA: [], isRegistering: false, error: '' };
                 localStorage.removeItem('myweekly_token');
             },
             async addWeeklyTask() {
@@ -386,11 +483,49 @@
                     const data = await this.apiCall('/api/auth/settings', 'PUT', this.settingsForm);
                     this.auth.dayStartTime = data.dayStartTime;
                     this.auth.dayEndTime = data.dayEndTime;
-                    this.tasks = data.tasks; // Refresh tasks with new settings
+                    this.tasks = data.tasks;
                     alert('Settings saved and schedule regenerated!');
                 } catch (error) {
                     alert('Failed to save settings.');
                     console.error("Failed to update settings:", error);
+                }
+            },
+            async getDsaQuestions() {
+                try {
+                    this.dsaQuestions = await this.apiCall('/api/dsa');
+                } catch (error) { console.error("Failed to get DSA questions:", error); }
+            },
+            async addDsaQuestion() {
+                try {
+                    const newQuestion = await this.apiCall('/api/dsa', 'POST', this.dsaForm);
+                    this.dsaQuestions.unshift(newQuestion);
+                    this.dsaForm = { title: '', link: '' };
+                } catch (error) { console.error("Failed to add DSA question:", error); }
+            },
+            async toggleDsaSolve(questionId) {
+                try {
+                    const updatedSolved = await this.apiCall(`/api/dsa/${questionId}/solve`, 'PUT');
+                    this.auth.solvedDSA = updatedSolved;
+                } catch (error) { console.error("Failed to toggle solve status:", error); }
+            },
+            async addComment(questionId) {
+                try {
+                    const updatedComments = await this.apiCall(`/api/dsa/${questionId}/comment`, 'POST', this.commentForm);
+                    const question = this.dsaQuestions.find(q => q._id === questionId);
+                    if (question) {
+                        question.comments = updatedComments;
+                    }
+                    this.commentForm.text = '';
+                } catch (error) { console.error("Failed to add comment:", error); }
+            },
+            async getAdminData() {
+                if (!this.auth.isAdmin) return;
+                try {
+                    this.allUsers = await this.apiCall('/api/admin/users');
+                } catch (error) {
+                    console.error("Failed to fetch admin data:", error);
+                    alert('You do not have permission to view this page.');
+                    this.currentPage = 'dashboard';
                 }
             }
         }
