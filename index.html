@@ -202,7 +202,7 @@
 
     <!-- Footer -->
     <footer x-show="auth.token" class="w-full text-center p-4 text-gray-500 text-sm mt-8">
-        <p class="font-bold">Developed by Ninkor.</p>
+        <p class="font-bold">Developed by Ninkor B.</p>
         <p class="max-w-prose mx-auto my-2">This is a personal project to demonstrate full-stack development skills using the MERN stack (MongoDB, Express, Node.js) with a modern front-end. It's designed to be a simple, effective tool for daily planning and motivation.</p>
         <div class="flex justify-center gap-4 mt-2">
             <a href="https://github.com/NinkorB" target="_blank" class="hover:text-sky-600">GitHub</a>
@@ -244,7 +244,12 @@
             },
             get progress() {
                 const log = this.currentWeekLog;
-                if (!log) return { completed: 0, total: this.tasks.length, percentage: 0 };
+                if (!log) {
+                    const completed = this.tasks.filter(t => t.completed).length;
+                    const total = this.tasks.length;
+                    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+                    return { completed, total, percentage };
+                }
                 const percentage = log.totalTasks > 0 ? Math.round((log.tasksCompleted / log.totalTasks) * 100) : 0;
                 return { completed: log.tasksCompleted, total: log.totalTasks, percentage };
             },
@@ -255,7 +260,10 @@
                 let currentStreak = 0;
                 const sorted = this.sortedHistory;
                 for (let i = 0; i < sorted.length; i++) {
-                    if (sorted[i].goalAchieved) {
+                    const logDate = new Date(sorted[i].weekOf);
+                    const expectedDate = this.getStartOfWeek(new Date());
+                    expectedDate.setDate(expectedDate.getDate() - (i * 7));
+                    if (logDate.getTime() === expectedDate.getTime() && sorted[i].goalAchieved) {
                         currentStreak++;
                     } else {
                         break;
@@ -267,9 +275,9 @@
             // --- METHODS ---
             getStartOfWeek(date) {
                 const d = new Date(date);
+                d.setHours(0, 0, 0, 0);
                 const day = d.getDay();
                 const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-                d.setHours(0, 0, 0, 0);
                 return new Date(d.setDate(diff));
             },
             formatDate(dateString) {
