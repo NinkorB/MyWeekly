@@ -15,7 +15,7 @@ const adminMiddleware = (req, res, next) => {
 
 router.get('/', authMiddleware, async (req, res) => {
     try {
-        const questions = await DSAQuestion.find().sort({ createdAt: 1 });
+        const questions = await DSAQuestion.find().sort({ order: 1 });
         res.json(questions);
     } catch (err) { 
         console.error("Error fetching DSA questions:", err);
@@ -59,6 +59,35 @@ router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
         res.json({ msg: 'Question deleted' });
     } catch (err) { 
         console.error("Error deleting DSA question:", err);
+        res.status(500).json({ msg: err.message }); 
+    }
+});
+
+router.put('/:id/reorder', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { direction } = req.body;
+        const questionToMove = await DSAQuestion.findById(req.params.id);
+        if (!questionToMove) return res.status(404).json({ msg: 'Question not found' });
+
+        let questionToSwap;
+        if (direction === 'up') {
+            questionToSwap = await DSAQuestion.findOne({ order: { $lt: questionToMove.order } }).sort({ order: -1 });
+        } else {
+            questionToSwap = await DSAQuestion.findOne({ order: { $gt: questionToMove.order } }).sort({ order: 1 });
+        }
+
+        if (questionToSwap) {
+            const tempOrder = questionToMove.order;
+            questionToMove.order = questionToSwap.order;
+            questionToSwap.order = tempOrder;
+            await questionToMove.save();
+            await questionToSwap.save();
+        }
+
+        const allQuestions = await DSAQuestion.find().sort({ order: 1 });
+        res.json(allQuestions);
+    } catch (err) { 
+        console.error("Error reordering DSA question:", err);
         res.status(500).json({ msg: err.message }); 
     }
 });

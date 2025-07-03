@@ -1,4 +1,3 @@
-// Helper to get the start of the current week (Monday)
 function getStartOfWeek(date) {
     const d = new Date(date);
     d.setHours(0, 0, 0, 0);

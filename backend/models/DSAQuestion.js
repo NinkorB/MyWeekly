@@ -11,8 +11,18 @@ const dsaQuestionSchema = new mongoose.Schema({
     link: { type: String, required: true, unique: true },
     platform: { type: String, default: 'LeetCode' },
     tags: [{ type: String, trim: true }],
+    order: { type: Number, default: 0 },
     comments: [commentSchema]
 }, { timestamps: true });
 
+dsaQuestionSchema.pre('save', async function(next) {
+    if (this.isNew) {
+        const highestOrder = await this.constructor.findOne().sort('-order');
+        this.order = (highestOrder && highestOrder.order) ? highestOrder.order + 1 : 1;
+    }
+    next();
+});
+
 const DSAQuestion = mongoose.model('DSAQuestion', dsaQuestionSchema);
 module.exports = DSAQuestion;
+

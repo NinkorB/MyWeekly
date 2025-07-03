@@ -16,6 +16,11 @@
 </head>
 <body x-data="app()" x-init="init()" class="flex flex-col min-h-screen">
 
+    <!-- Notification Popup -->
+    <div x-show="notification.show" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" x-transition:leave="transition ease-in duration-300" x-transition:leave-start="opacity-100 transform translate-y-0" x-transition:leave-end="opacity-0 transform translate-y-2" class="fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg z-50">
+        <p x-text="notification.message"></p>
+    </div>
+
     <!-- Login/Register/Forgot Password Section -->
     <div x-show="!auth.token" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
@@ -157,7 +162,7 @@
                                     <p class="font-semibold text-sky-600" x-text="task.time"></p>
                                     <h3 class="text-lg font-medium text-gray-800 task-title" x-text="getFormattedTaskTitle(task)"></h3>
                                 </a>
-                                <input type="checkbox" @change="toggleTask(task._id)" :checked="task.completed" class="h-6 w-6 rounded-md border-gray-300 text-sky-600 focus:ring-sky-500 ml-4 cursor-pointer">
+                                <input type="checkbox" @change="toggleTask(task)" :checked="task.completed" class="h-6 w-6 rounded-md border-gray-300 text-sky-600 focus:ring-sky-500 ml-4 cursor-pointer">
                             </div>
                         </template>
                     </div>
@@ -429,6 +434,7 @@
             expandedUser: null,
             dsaForm: { title: '', link: '', tags: '' },
             editingDsa: null,
+            showEditDsaModal: false,
             showCommentsFor: null,
             commentForm: { text: '' },
             weeklyTaskForm: { title: '', duration: null, link: '', automate: false, preferredSlots: [], startTime: null },
@@ -612,12 +618,33 @@
                     } catch (error) { console.error("Failed to delete weekly task:", error); }
                 }
             },
-            async toggleTask(taskId) {
+            async toggleTask(task) {
+                const now = new Date();
+                const currentHour = now.getHours();
+                const timeParts = task.time.split(' - ');
+                const endTimeString = timeParts[1];
+                let [hour, modifier] = endTimeString.split(' ');
+                hour = parseInt(hour);
+                if (modifier === 'PM' && hour !== 12) hour += 12;
+                if (modifier === 'AM' && hour === 12) hour = 0;
+                
+                if (!task.completed && currentHour < hour) {
+                    this.showNotification('Task not complete yet! Please complete your task.');
+                    return;
+                }
+
                 try {
-                    const data = await this.apiCall(`/api/tasks/${taskId}/toggle`, 'PUT');
+                    const data = await this.apiCall(`/api/tasks/${task._id}/toggle`, 'PUT');
                     this.tasks = data.tasks;
                     this.history = data.history;
                 } catch (error) { console.error("Failed to toggle task:", error); }
+            },
+            showNotification(message) {
+                this.notification.message = message;
+                this.notification.show = true;
+                setTimeout(() => {
+                    this.notification.show = false;
+                }, 3000);
             },
             async updateReward() {
                 try {

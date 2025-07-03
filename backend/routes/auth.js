@@ -73,7 +73,6 @@ router.put('/settings', authMiddleware, async (req, res) => {
 router.post('/forgot-password', async (req, res) => {
     try {
         const { username, fullName, link } = req.body;
-        // Generate a 5-character uppercase alphanumeric token
         const token = crypto.randomBytes(3).toString('hex').slice(0, 5).toUpperCase();
         const newResetRequest = new PasswordReset({ username, fullName, link, token });
         await newResetRequest.save();
