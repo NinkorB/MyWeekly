@@ -280,8 +280,8 @@
             <div x-show="auth.isAdmin" class="bg-white p-6 rounded-xl shadow-sm mb-8">
                 <h3 class="text-xl font-bold mb-4">Add New DSA Question</h3>
                 <form @submit.prevent="addDsaQuestion()">
-                    <div class="space-y-4">
-                        <div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700">Topic (Primary Tag)</label>
                             <select x-model="dsaForm.primaryTag" class="mt-1 w-full px-4 py-2 bg-gray-100 rounded-lg">
                                 <option value="">-- Select a Topic --</option>
@@ -291,14 +291,17 @@
                                 <option value="--new--">** Add New Topic **</option>
                             </select>
                         </div>
-                        <div x-show="dsaForm.primaryTag === '--new--'">
+                        <div x-show="dsaForm.primaryTag === '--new--'" class="md:col-span-2">
                             <input type="text" x-model="dsaForm.newPrimaryTag" placeholder="Enter New Topic Name (e.g., Dynamic Programming)" class="w-full px-4 py-2 bg-gray-100 rounded-lg">
                         </div>
                         <input type="text" x-model="dsaForm.title" placeholder="Question Title" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
                         <input type="url" x-model="dsaForm.link" placeholder="Question Link (LeetCode, etc.)" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
-                        <input type="text" x-model="dsaForm.tags" placeholder="Other tags, comma-separated (e.g., array, math)" class="w-full px-4 py-2 bg-gray-100 rounded-lg">
-                        
-                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-lg transition">Post Question</button>
+                        <div class="md:col-span-2">
+                            <input type="text" x-model="dsaForm.tags" placeholder="Other tags, comma-separated (e.g., array, math)" class="w-full px-4 py-2 bg-gray-100 rounded-lg">
+                        </div>
+                        <div class="md:col-span-2">
+                            <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-lg transition">Post Question</button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -306,31 +309,27 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <template x-for="tag in dsaPrimaryTags" :key="tag">
                     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-                        <div @click="activeDsaTag = (activeDsaTag === tag ? null : tag)" class="p-5 flex justify-between items-center cursor-pointer hover:bg-gray-50">
+                        <div @click="activeDsaTag = (activeDsaTag === tag ? null : tag)" class="p-4 flex justify-between items-center cursor-pointer hover:bg-gray-50">
                             <div class="flex items-center gap-4">
-                                <div class="relative w-16 h-16">
+                                <div class="relative w-12 h-12 md:w-16 md:h-16 flex-shrink-0">
                                     <svg class="w-full h-full" viewBox="0 0 36 36">
-                                        <path class="text-gray-200" stroke="currentColor" stroke-width="3" fill="none"
-                                            d="M18 2.0845
-                                            a 15.9155 15.9155 0 0 1 0 31.831
-                                            a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                        <path class="text-sky-500" stroke="currentColor" stroke-width="3" fill="none"
+                                        <path class="text-gray-200" stroke="currentColor" stroke-width="4" fill="none"
+                                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <path class="text-sky-500" stroke="currentColor" stroke-width="4" fill="none"
                                             stroke-linecap="round"
                                             :stroke-dasharray="`${progressByTag[tag]?.percentage || 0}, 100`"
-                                            d="M18 2.0845
-                                            a 15.9155 15.9155 0 0 1 0 31.831
-                                            a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                                     </svg>
                                     <div class="absolute inset-0 flex items-center justify-center">
                                         <span class="text-xs font-bold text-gray-600" x-text="`${progressByTag[tag]?.percentage || 0}%`"></span>
                                     </div>
                                 </div>
                                 <div>
-                                    <h3 class="text-lg font-bold text-gray-800" x-text="tag"></h3>
+                                     <h3 class="text-base md:text-lg font-bold text-gray-800" x-text="tag"></h3>
                                     <p class="text-sm text-gray-500" x-text="`${progressByTag[tag]?.solved || 0} / ${progressByTag[tag]?.total || 0} solved`"></p>
                                 </div>
                             </div>
-                            <svg class="w-5 h-5 transition-transform text-gray-400" :class="{'rotate-180': activeDsaTag === tag}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            <svg class="w-5 h-5 transition-transform text-gray-400 flex-shrink-0 ml-2" :class="{'rotate-180': activeDsaTag === tag}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </div>
 
                         <div x-show="activeDsaTag === tag" x-transition class="p-4 border-t bg-gray-50">
