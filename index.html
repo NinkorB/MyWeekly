@@ -16,15 +16,12 @@
 </head>
 <body x-data="app()" x-init="init()" class="flex flex-col min-h-screen">
 
-    <!-- Notification Popup -->
     <div x-show="notification.show" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform translate-y-2" x-transition:enter-end="opacity-100 transform translate-y-0" x-transition:leave="transition ease-in duration-300" x-transition:leave-start="opacity-100 transform translate-y-0" x-transition:leave-end="opacity-0 transform translate-y-2" class="fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg z-50">
         <p x-text="notification.message"></p>
     </div>
 
-    <!-- Login/Register/Forgot Password Section -->
     <div x-show="!auth.token" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
-            <!-- Login Form -->
             <div x-show="auth.view === 'login'">
                 <h2 class="text-3xl font-bold text-center text-gray-800 mb-2">Welcome Back</h2>
                 <p class="text-center text-gray-500 mb-6">Login to see your schedule.</p>
@@ -43,7 +40,6 @@
                     Don’t have an account? <a href="#" @click.prevent="auth.view = 'register'" class="font-semibold text-sky-600 hover:text-sky-500">Register</a>
                 </p>
             </div>
-            <!-- Register Form -->
             <div x-show="auth.view === 'register'">
                  <h2 class="text-3xl font-bold text-center text-gray-800 mb-2">Create Your Account</h2>
                 <p class="text-center text-gray-500 mb-6">Start tracking your progress like a pro.</p>
@@ -61,11 +57,9 @@
                     Already have an account? <a href="#" @click.prevent="auth.view = 'login'" class="font-semibold text-sky-600 hover:text-sky-500">Login</a>
                 </p>
             </div>
-            <!-- Forgot Password Flow -->
             <div x-show="auth.view === 'forgot'">
                 <h2 class="text-3xl font-bold text-center text-gray-800 mb-2">Password Reset</h2>
                 
-                <!-- Step 1: Check for Token -->
                 <div x-show="forgotPassword.view === 'check'">
                     <p class="text-center text-gray-500 mb-6">Enter your request token to check the status.</p>
                     <input type="text" x-model="forgotPassword.checkToken" placeholder="Enter your token here" class="w-full px-4 py-2 bg-gray-100 rounded-lg">
@@ -83,7 +77,6 @@
                     </p>
                 </div>
 
-                <!-- Step 2: Request a Token -->
                 <div x-show="forgotPassword.view === 'request'">
                     <p class="text-center text-gray-500 mb-6">Submit a request for the admin to reset your password.</p>
                     <div x-show="!forgotPassword.token">
@@ -113,7 +106,6 @@
         </div>
     </div>
 
-    <!-- Main App -->
     <div x-show="auth.token" x-cloak class="flex-grow">
         <header class="bg-white shadow-sm sticky top-0 z-40">
             <div class="container mx-auto p-4 flex justify-between items-center">
@@ -148,14 +140,13 @@
             </div>
         </header>
 
-        <!-- Page: Dashboard -->
         <main x-show="currentPage === 'dashboard'" class="container mx-auto p-4 md:p-8">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div class="lg:col-span-2">
                     <h2 class="text-3xl font-bold mb-1" x-text="`Today's Focus: ${currentDate}`"></h2>
                     <p class="text-gray-500 mb-6" x-text="currentDayName"></p>
                     <div id="schedule-container" class="space-y-4">
-                         <template x-if="todaysTasks.length === 0"><p class="text-center text-gray-500 bg-white p-8 rounded-xl shadow-sm">No tasks scheduled for today. Go to "Manage Tasks" to add some for the week!</p></template>
+                        <template x-if="todaysTasks.length === 0"><p class="text-center text-gray-500 bg-white p-8 rounded-xl shadow-sm">No tasks scheduled for today. Go to "Manage Tasks" to add some for the week!</p></template>
                         <template x-for="task in todaysTasks" :key="task._id">
                             <div class="task-card flex items-center p-5 bg-white rounded-xl shadow-sm border-l-4" :class="{ 'completed': task.completed, 'border-sky-500': !task.completed, 'border-green-500': task.completed }">
                                 <a :href="task.link" target="_blank" class="flex-grow" :class="{'pointer-events-none': !task.link}">
@@ -178,11 +169,11 @@
                         <div x-show="isSunday" class="mt-6 pt-4 border-t">
                              <h3 class="font-bold mb-2">Claim Your Reward!</h3>
                              <div x-show="currentWeekLog && currentWeekLog.goalAchieved">
-                                <p class="text-green-700 font-semibold">Goal Achieved! Your reward is:</p>
-                                <p class="text-gray-800" x-text="auth.reward"></p>
+                                 <p class="text-green-700 font-semibold">Goal Achieved! Your reward is:</p>
+                                 <p class="text-gray-800" x-text="auth.reward"></p>
                              </div>
                              <div x-show="!currentWeekLog || !currentWeekLog.goalAchieved">
-                                <p class="text-gray-500">You didn't meet your goal this week. Keep trying!</p>
+                                 <p class="text-gray-500">You didn't meet your goal this week. Keep trying!</p>
                              </div>
                         </div>
                     </div>
@@ -190,7 +181,6 @@
             </div>
         </main>
 
-        <!-- Page: Manage Tasks -->
         <main x-show="currentPage === 'manageTasks'" class="container mx-auto p-4 md:p-8">
             <h2 class="text-3xl font-bold mb-6">Manage Weekly Tasks</h2>
             <div class="mb-8 bg-white p-6 rounded-xl shadow-sm">
@@ -248,7 +238,7 @@
             <div class="space-y-3">
                 <template x-if="weeklyTasks.length === 0"><p class="text-center text-gray-500">No weekly tasks defined yet.</p></template>
                 <template x-for="task in weeklyTasks" :key="task._id">
-                     <div class="p-4 bg-white rounded-lg shadow-sm flex justify-between items-center">
+                       <div class="p-4 bg-white rounded-lg shadow-sm flex justify-between items-center">
                         <span x-text="`${task.title} (${task.duration} hours)`"></span>
                         <button @click="deleteWeeklyTask(task._id)" class="text-gray-400 hover:text-red-500 transition">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
@@ -258,7 +248,6 @@
             </div>
         </main>
         
-        <!-- Page: History -->
         <main x-show="currentPage === 'history'" class="container mx-auto p-4 md:p-8">
             <h2 class="text-3xl font-bold mb-6">Your Goal History</h2>
             <div class="bg-white p-6 rounded-xl shadow-sm mb-8 text-center">
@@ -279,49 +268,83 @@
             </div>
         </main>
 
-        <!-- Page: DSA Sheet -->
         <main x-show="currentPage === 'dsaSheet'" class="container mx-auto p-4 md:p-8">
-            <h2 class="text-3xl font-bold mb-2">DSA Problem Sheet</h2>
+            <h2 class="text-3xl font-bold mb-2">DSA Topic Mastery</h2>
             <div class="mb-6">
                 <p class="text-gray-600 mb-1" x-text="`Overall Progress: ${dsaProgress.solved} / ${dsaProgress.total} Questions`"></p>
                 <div class="w-full bg-gray-200 rounded-full h-4">
                     <div class="bg-gradient-to-r from-sky-500 to-indigo-500 h-4 rounded-full" :style="`width: ${dsaProgress.percentage}%`"></div>
                 </div>
             </div>
+
             <div x-show="auth.isAdmin" class="bg-white p-6 rounded-xl shadow-sm mb-8">
                 <h3 class="text-xl font-bold mb-4">Add New DSA Question</h3>
                 <form @submit.prevent="addDsaQuestion()">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Topic (Primary Tag)</label>
+                            <select x-model="dsaForm.primaryTag" class="mt-1 w-full px-4 py-2 bg-gray-100 rounded-lg">
+                                <option value="">-- Select a Topic --</option>
+                                <template x-for="tag in dsaPrimaryTags" :key="tag">
+                                    <option :value="tag" x-text="tag"></option>
+                                </template>
+                                <option value="--new--">** Add New Topic **</option>
+                            </select>
+                        </div>
+                        <div x-show="dsaForm.primaryTag === '--new--'">
+                            <input type="text" x-model="dsaForm.newPrimaryTag" placeholder="Enter New Topic Name (e.g., Dynamic Programming)" class="w-full px-4 py-2 bg-gray-100 rounded-lg">
+                        </div>
                         <input type="text" x-model="dsaForm.title" placeholder="Question Title" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
-                        <input type="url" x-model="dsaForm.link" placeholder="Question Link (LeetCode, GFG, etc.)" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
+                        <input type="url" x-model="dsaForm.link" placeholder="Question Link (LeetCode, etc.)" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
+                        <input type="text" x-model="dsaForm.tags" placeholder="Other tags, comma-separated (e.g., array, math)" class="w-full px-4 py-2 bg-gray-100 rounded-lg">
+                        
+                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-lg transition">Post Question</button>
                     </div>
-                    <div class="mt-4">
-                         <input type="text" x-model="dsaForm.tags" placeholder="Tags (e.g., array, math, string)" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
-                    </div>
-                    <button type="submit" class="mt-4 w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-lg transition">Post Question</button>
                 </form>
             </div>
-            <div class="space-y-4">
-                <template x-for="tag in dsaTags" :key="tag">
-                     <div class="bg-white rounded-xl shadow-sm">
-                        <button @click="activeDsaTag = (activeDsaTag === tag ? null : tag)" class="w-full text-left p-4 flex justify-between items-center">
-                            <div>
-                                <h3 class="text-xl font-semibold" x-text="tag"></h3>
-                                <p class="text-sm text-gray-500" x-text="`${progressByTag[tag].solved} / ${progressByTag[tag].total} solved`"></p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <template x-for="tag in dsaPrimaryTags" :key="tag">
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                        <div @click="activeDsaTag = (activeDsaTag === tag ? null : tag)" class="p-5 flex justify-between items-center cursor-pointer hover:bg-gray-50">
+                            <div class="flex items-center gap-4">
+                                <div class="relative w-16 h-16">
+                                    <svg class="w-full h-full" viewBox="0 0 36 36">
+                                        <path class="text-gray-200" stroke="currentColor" stroke-width="3" fill="none"
+                                            d="M18 2.0845
+                                            a 15.9155 15.9155 0 0 1 0 31.831
+                                            a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <path class="text-sky-500" stroke="currentColor" stroke-width="3" fill="none"
+                                            stroke-linecap="round"
+                                            :stroke-dasharray="`${progressByTag[tag]?.percentage || 0}, 100`"
+                                            d="M18 2.0845
+                                            a 15.9155 15.9155 0 0 1 0 31.831
+                                            a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    </svg>
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <span class="text-xs font-bold text-gray-600" x-text="`${progressByTag[tag]?.percentage || 0}%`"></span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-800" x-text="tag"></h3>
+                                    <p class="text-sm text-gray-500" x-text="`${progressByTag[tag]?.solved || 0} / ${progressByTag[tag]?.total || 0} solved`"></p>
+                                </div>
                             </div>
-                            <svg class="w-5 h-5 transition-transform" :class="{'rotate-180': activeDsaTag === tag}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </button>
-                        <div x-show="activeDsaTag === tag" x-transition class="p-4 border-t">
+                            <svg class="w-5 h-5 transition-transform text-gray-400" :class="{'rotate-180': activeDsaTag === tag}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+
+                        <div x-show="activeDsaTag === tag" x-transition class="p-4 border-t bg-gray-50">
                             <div class="space-y-2">
-                                <template x-for="(q, index) in questionsByTag[tag]" :key="q._id">
-                                    <div class="p-3 border-b flex justify-between items-center">
-                                        <div class="flex items-center">
-                                            <span class="text-gray-500 w-6" x-text="`${index + 1}.`"></span>
-                                            <a :href="q.link" target="_blank" class="font-medium hover:text-sky-600" x-text="q.title"></a>
+                                <template x-for="q in questionsByTag[tag]" :key="q._id">
+                                    <div class="p-3 border-b flex justify-between items-center hover:bg-white rounded">
+                                        <div class="flex items-center flex-grow min-w-0">
+                                            <span class="text-gray-500 font-medium w-8" x-text="`${q.order}.`"></span>
+                                            <a :href="q.link" target="_blank" class="font-medium hover:text-sky-600 truncate" :title="q.title" x-text="q.title"></a>
                                         </div>
-                                        <div class="flex items-center gap-2">
-                                            <button x-show="auth.isAdmin" @click="editDsaQuestion(q)" class="text-gray-400 hover:text-blue-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>
-                                            <button x-show="auth.isAdmin" @click="deleteDsaQuestion(q._id)" class="text-gray-400 hover:text-red-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>
+                                        <div class="flex items-center gap-2 flex-shrink-0 ml-2">
+                                            <button x-show="auth.isAdmin" @click="deleteDsaQuestion(q._id)" class="text-gray-400 hover:text-red-500">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                                            </button>
                                             <label class="flex items-center cursor-pointer">
                                                 <input type="checkbox" @change="toggleDsaSolve(q._id)" :checked="auth.solvedDSA.includes(q._id)" class="h-5 w-5 rounded-md text-green-600 focus:ring-green-500">
                                             </label>
@@ -335,7 +358,6 @@
             </div>
         </main>
         
-        <!-- Page: Admin Users -->
         <main x-show="currentPage === 'adminUsers'" class="container mx-auto p-4 md:p-8">
             <h2 class="text-3xl font-bold mb-6">Admin Dashboard: All Users</h2>
             <div class="space-y-4">
@@ -362,7 +384,6 @@
             </div>
         </main>
         
-        <!-- Page: Profile -->
         <main x-show="currentPage === 'profile'" class="container mx-auto p-4 md:p-8">
              <h2 class="text-3xl font-bold mb-6">My Profile</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -385,7 +406,6 @@
             </div>
         </main>
         
-        <!-- Page: Admin Queries -->
         <main x-show="currentPage === 'adminQueries'" class="container mx-auto p-4 md:p-8">
             <h2 class="text-3xl font-bold mb-6">Password Reset Queries</h2>
             <div class="space-y-4">
@@ -409,7 +429,6 @@
         </main>
     </div>
 
-    <!-- Footer -->
     <footer x-show="auth.token" class="w-full text-center p-4 text-gray-500 text-sm mt-8">
         <p class="font-bold">Developed by Ninkor B.</p>
         <p class="max-w-prose mx-auto my-2">This is a personal project to demonstrate full-stack development skills using the MERN stack (MongoDB, Express, Node.js) with a modern front-end. It's designed to be a simple, effective tool for daily planning and motivation.</p>
@@ -422,7 +441,7 @@
 <script>
     function app() {
         return {
-            API_URL: 'https://myweekly.onrender.com',
+            API_URL: 'http://localhost:5000', // Update if you deploy
             currentPage: 'dashboard',
             auth: { token: null, username: null, reward: '', dayStartTime: 9, dayEndTime: 21, isAdmin: false, solvedDSA: [], isRegistering: false, error: '', view: 'login' },
             form: { username: '', password: '', githubUrl: '', fullName: '' },
@@ -432,9 +451,9 @@
             dsaQuestions: [],
             allUsers: [],
             expandedUser: null,
-            dsaForm: { title: '', link: '', tags: '' },
-            editingDsa: null,
-            showEditDsaModal: false,
+            dsaForm: { title: '', link: '', primaryTag: '', newPrimaryTag: '', tags: '' },
+            activeDsaTag: null,
+            notification: { show: false, message: '' },
             showCommentsFor: null,
             commentForm: { text: '' },
             weeklyTaskForm: { title: '', duration: null, link: '', automate: false, preferredSlots: [], startTime: null },
@@ -447,6 +466,7 @@
             passwordForm: { currentPassword: '', newPassword: '', message: '', success: false },
             passwordRequests: [],
             
+            // --- COMPUTED PROPERTIES ---
             get currentDate() { return new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); },
             get currentDayName() { return new Date().toLocaleDateString('en-US', { weekday: 'long' }); },
             get isSunday() { return new Date().getDay() === 0; },
@@ -488,16 +508,15 @@
                 }
                 return currentStreak;
             },
-            get dsaTags() {
-                const allTags = this.dsaQuestions.flatMap(q => q.tags);
-                return [...new Set(allTags)];
+            get dsaPrimaryTags() {
+                const primaryTags = this.dsaQuestions.map(q => q.primaryTag);
+                return [...new Set(primaryTags)];
             },
             get questionsByTag() {
                 return this.dsaQuestions.reduce((acc, q) => {
-                    (q.tags || []).forEach(tag => {
-                        if (!acc[tag]) acc[tag] = [];
-                        acc[tag].push(q);
-                    });
+                    const tag = q.primaryTag;
+                    if (!acc[tag]) acc[tag] = [];
+                    acc[tag].push(q);
                     return acc;
                 }, {});
             },
@@ -509,7 +528,7 @@
             },
             get progressByTag() {
                 const progress = {};
-                this.dsaTags.forEach(tag => {
+                this.dsaPrimaryTags.forEach(tag => {
                     const questionsInTag = this.questionsByTag[tag] || [];
                     const total = questionsInTag.length;
                     const solved = questionsInTag.filter(q => this.auth.solvedDSA.includes(q._id)).length;
@@ -518,6 +537,7 @@
                 return progress;
             },
             
+            // --- METHODS ---
             init() {
                 const token = localStorage.getItem('myweekly_token');
                 if (token) this.verifyToken(token);
@@ -672,28 +692,32 @@
             },
             async addDsaQuestion() {
                 try {
-                    const newQuestion = await this.apiCall('/api/dsa', 'POST', this.dsaForm);
-                    this.dsaQuestions.push(newQuestion);
-                    this.dsaForm = { title: '', link: '', tags: '' };
+                    let finalPrimaryTag = this.dsaForm.primaryTag;
+                    if (finalPrimaryTag === '--new--') {
+                        finalPrimaryTag = this.dsaForm.newPrimaryTag;
+                    }
+                    if (!finalPrimaryTag) {
+                        alert('Please select or create a primary topic.');
+                        return;
+                    }
+
+                    const payload = {
+                        title: this.dsaForm.title,
+                        link: this.dsaForm.link,
+                        primaryTag: finalPrimaryTag,
+                        tags: this.dsaForm.tags
+                    };
+
+                    await this.apiCall('/api/dsa', 'POST', payload);
+                    this.dsaForm = { title: '', link: '', primaryTag: '', newPrimaryTag: '', tags: '' };
+                    this.getDsaQuestions(); // Refresh the list
                 } catch (error) { console.error("Failed to add DSA question:", error); }
             },
-            async editDsaQuestion(question) {
-                const newTitle = prompt("Enter new title:", question.title);
-                const newLink = prompt("Enter new link:", question.link);
-                const newTags = prompt("Enter new tags (comma-separated):", question.tags.join(', '));
-                if (newTitle && newLink) {
-                    try {
-                        const updatedQuestion = await this.apiCall(`/api/dsa/${question._id}`, 'PUT', { title: newTitle, link: newLink, tags: newTags });
-                        const index = this.dsaQuestions.findIndex(q => q._id === question._id);
-                        this.dsaQuestions[index] = updatedQuestion;
-                    } catch (error) { console.error("Failed to edit question:", error); }
-                }
-            },
             async deleteDsaQuestion(questionId) {
-                if(confirm('Are you sure you want to delete this question permanently?')) {
+                if(confirm('Are you sure you want to delete this question? This will re-number the rest of the list.')) {
                     try {
                         await this.apiCall(`/api/dsa/${questionId}`, 'DELETE');
-                        this.dsaQuestions = this.dsaQuestions.filter(q => q._id !== questionId);
+                        this.getDsaQuestions(); // Refresh the entire list to get correct numbering
                     } catch (error) { console.error("Failed to delete question:", error); }
                 }
             },
