@@ -1,6 +1,7 @@
 const express = require('express');
 const User = require('../models/User');
 const DSAQuestion = require('../models/DSAQuestion');
+const Topic = require('../models/Topic'); // <-- Import the new model
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
@@ -13,18 +14,27 @@ const adminMiddleware = (req, res, next) => {
     }
 };
 
-router.get('/', authMiddleware, async (req, res) => {
+// GET all data for the DSA sheet (ordered topics and questions)
+router.get('/sheet-data', authMiddleware, async (req, res) => {
     try {
+        const topics = await Topic.find().sort({ order: 1 });
         const questions = await DSAQuestion.find().sort({ primaryTag: 1, order: 1 });
-        res.json(questions);
-    } catch (err) { 
-        res.status(500).json({ msg: err.message }); 
+        res.json({ topics, questions });
+    } catch (err) {
+        res.status(500).json({ msg: err.message });
     }
 });
 
+// POST a new question
 router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
     try {
         const { title, link, primaryTag, tags } = req.body;
+
+        // Check if the topic exists, if not, create it
+        const topicExists = await Topic.findOne({ name: primaryTag });
+        if (!topicExists) {
+            await Topic.create({ name: primaryTag });
+        }
         
         const lastQuestion = await DSAQuestion.findOne({ primaryTag }).sort({ order: -1 });
         const newOrder = lastQuestion ? lastQuestion.order + 1 : 1;
@@ -49,6 +59,25 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
     }
 });
 
+// POST to reorder topics
+router.post('/topics/reorder', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { orderedTopics } = req.body; // Expects an array of topic names in the new order
+        const updates = orderedTopics.map((topicName, index) => ({
+            updateOne: {
+                filter: { name: topicName },
+                update: { $set: { order: index + 1 } }
+            }
+        }));
+        await Topic.bulkWrite(updates);
+        res.json({ msg: 'Topics reordered successfully' });
+    } catch (err) {
+        res.status(500).json({ msg: err.message });
+    }
+});
+
+
+// DELETE a question
 router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
     try {
         const questionToDelete = await DSAQuestion.findById(req.params.id);
@@ -56,21 +85,30 @@ router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
             return res.status(404).json({ msg: 'Question not found' });
         }
 
+        const { primaryTag, order } = questionToDelete;
         await DSAQuestion.findByIdAndDelete(req.params.id);
 
+        // Re-order subsequent questions in the same topic
         await DSAQuestion.updateMany(
-            { primaryTag: questionToDelete.primaryTag, order: { $gt: questionToDelete.order } },
+            { primaryTag: primaryTag, order: { $gt: order } },
             { $inc: { order: -1 } }
         );
 
+        // If no questions are left for a topic, delete the topic
+        const remainingQuestions = await DSAQuestion.countDocuments({ primaryTag });
+        if (remainingQuestions === 0) {
+            await Topic.deleteOne({ name: primaryTag });
+        }
+
         await User.updateMany({}, { $pull: { solvedDSA: req.params.id } });
         
-        res.json({ msg: 'Question deleted and list re-ordered' });
+        res.json({ msg: 'Question deleted successfully' });
     } catch (err) { 
         res.status(500).json({ msg: err.message }); 
     }
 });
 
+// Other routes remain the same
 router.put('/:id/solve', authMiddleware, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -103,5 +141,6 @@ router.post('/:id/comment', authMiddleware, async (req, res) => {
         res.status(500).json({ msg: err.message }); 
     }
 });
+
 
 module.exports = router;
