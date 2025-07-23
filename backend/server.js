@@ -1,60 +1,33 @@
+require('dotenv').config();
+const express = require('express');
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const cors = require('cors');
+const authRoutes = require('./routes/auth');
+const taskRoutes = require('./routes/tasks');
+const dsaRoutes = require('./routes/dsa');
+const adminRoutes = require('./routes/admin');
 
-const taskSchema = new mongoose.Schema({
-    title: { type: String, required: true },
-    time: { type: String, required: true },
-    link: { type: String, default: '' },
-    completed: { type: Boolean, default: false },
-    dayOfWeek: { type: Number, required: true },
-    templateId: { type: mongoose.Schema.Types.ObjectId }
-});
+const app = express();
+const PORT = process.env.PORT || 5000;
 
-const weeklyTaskSchema = new mongoose.Schema({
-    title: { type: String, required: true },
-    duration: { type: Number, required: true },
-    link: { type: String, default: '' },
-    automate: { type: Boolean, default: false },
-    preferredSlots: [String],
-    startTime: { type: Number, default: null }
-});
-
-const weekLogSchema = new mongoose.Schema({
-    weekOf: { type: Date, required: true },
-    goalAchieved: { type: Boolean, required: true },
-    tasksCompleted: { type: Number, required: true },
-    totalTasks: { type: Number, required: true }
-});
-
-const userSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true, trim: true },
-    password: { type: String, required: true },
-    fullName: { type: String, default: '' },
-    githubUrl: { type: String, trim: true },
-    reward: { type: String, default: 'Enjoy 2 hours of guilt-free fun!' },
-    dayStartTime: { type: Number, default: 9 },
-    dayEndTime: { type: Number, default: 21 },
-    isAdmin: { type: Boolean, default: false },
-    tasks: [taskSchema],
-    weeklyTasks: [weeklyTaskSchema],
-    history: [weekLogSchema],
-    solvedDSA: [{ type: mongoose.Schema.Types.ObjectId, ref: 'DSAQuestion' }]
-}, { timestamps: true });
-
-userSchema.pre('save', async function(next) {
-    if (this.isModified('password')) {
-        const salt = await bcrypt.genSalt(10);
-        this.password = await bcrypt.hash(this.password, salt);
+const allowedOrigins = ['http://127.0.0.1:5500', 'http://localhost:5500', 'https://ninkorb.github.io'];
+const corsOptions = {
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
     }
-    if (this.username === 'ninkor') {
-        this.isAdmin = true;
-    }
-    next();
-});
-
-userSchema.methods.matchPassword = async function(enteredPassword) {
-    return await bcrypt.compare(enteredPassword, this.password);
 };
+app.use(cors(corsOptions));
+app.use(express.json());
 
-const User = mongoose.model('User', userSchema);
-module.exports = User;
+mongoose.connect(process.env.MONGO_URI).then(() => console.log('MongoDB Connected!')).catch(err => console.error(err));
+
+app.use('/api/auth', authRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/dsa', dsaRoutes);
+app.use('/api/admin', adminRoutes);
+
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
