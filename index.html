@@ -6,12 +6,22 @@
     <title>MyWeekly - Your Custom Schedule Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
         .task-card.completed { background-color: #e0f2fe; border-left-color: #0ea5e9; }
         .task-card.completed .task-title { text-decoration: line-through; color: #6b7280; }
         .modal-backdrop { background-color: rgba(0,0,0,0.5); }
         [x-cloak] { display: none !important; }
+        /* Style for the active topic tab */
+        .topic-tab.active { 
+            background-color: #0c4a6e; /* sky-900 */
+            color: white;
+            font-weight: 600;
+        }
+        /* Style for the reorder modal draggable items */
+        .draggable-item { cursor: move; }
+        .draggable-item:hover { background-color: #f0f9ff; } /* sky-50 */
     </style>
 </head>
 <body x-data="app()" x-init="init()" class="flex flex-col min-h-screen">
@@ -121,7 +131,7 @@
                 <nav class="hidden md:flex items-center gap-4">
                     <a href="#" @click.prevent="currentPage = 'dashboard'" :class="{'text-sky-600 font-semibold': currentPage === 'dashboard'}" class="text-gray-600 hover:text-sky-600">Dashboard</a>
                     <a href="#" @click.prevent="currentPage = 'manageTasks'" :class="{'text-sky-600 font-semibold': currentPage === 'manageTasks'}" class="text-gray-600 hover:text-sky-600">Manage Tasks</a>
-                    <a href="#" @click.prevent="currentPage = 'dsaSheet'; getDsaQuestions()" :class="{'text-sky-600 font-semibold': currentPage === 'dsaSheet'}" class="text-gray-600 hover:text-sky-600">DSA Sheet</a>
+                    <a href="#" @click.prevent="currentPage = 'dsaSheet'; getDsaSheetData()" :class="{'text-sky-600 font-semibold': currentPage === 'dsaSheet'}" class="text-gray-600 hover:text-sky-600">DSA Sheet</a>
                     <a href="#" @click.prevent="currentPage = 'history'" :class="{'text-sky-600 font-semibold': currentPage === 'history'}" class="text-gray-600 hover:text-sky-600">History</a>
                     <a x-show="auth.isAdmin" href="#" @click.prevent="currentPage = 'adminQueries'; getPasswordRequests()" :class="{'text-red-600 font-semibold': currentPage === 'adminQueries'}" class="text-gray-600 hover:text-red-600">Queries</a>
                     <a x-show="auth.isAdmin" href="#" @click.prevent="currentPage = 'adminUsers'; getAdminData()" :class="{'text-red-600 font-semibold': currentPage === 'adminUsers'}" class="text-gray-600 hover:text-red-600">Users</a>
@@ -132,7 +142,7 @@
             <div x-show="isMobileMenuOpen" @click.away="isMobileMenuOpen = false" x-transition class="md:hidden bg-white border-t">
                 <a href="#" @click.prevent="currentPage = 'dashboard'; isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100">Dashboard</a>
                 <a href="#" @click.prevent="currentPage = 'manageTasks'; isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100">Manage Tasks</a>
-                <a href="#" @click.prevent="currentPage = 'dsaSheet'; getDsaQuestions(); isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100">DSA Sheet</a>
+                <a href="#" @click.prevent="currentPage = 'dsaSheet'; getDsaSheetData(); isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100">DSA Sheet</a>
                 <a href="#" @click.prevent="currentPage = 'history'; isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100">History</a>
                 <a x-show="auth.isAdmin" href="#" @click.prevent="currentPage = 'adminQueries'; getPasswordRequests(); isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100 text-red-600">Queries</a>
                  <a x-show="auth.isAdmin" href="#" @click.prevent="currentPage = 'adminUsers'; getAdminData(); isMobileMenuOpen = false" class="block py-2 px-4 text-sm hover:bg-gray-100 text-red-600">Users</a>
@@ -269,30 +279,70 @@
         </main>
 
         <main x-show="currentPage === 'dsaSheet'" class="container mx-auto p-4 md:p-8">
-            <h2 class="text-3xl font-bold mb-2">DSA Topic Mastery</h2>
-            <div class="mb-6">
-                <p class="text-gray-600 mb-1" x-text="`Overall Progress: ${dsaProgress.solved} / ${dsaProgress.total} Questions`"></p>
-                <div class="w-full bg-gray-200 rounded-full h-4">
-                    <div class="bg-gradient-to-r from-sky-500 to-indigo-500 h-4 rounded-full" :style="`width: ${dsaProgress.percentage}%`"></div>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                <div>
+                    <h2 class="text-3xl font-bold">A2Z DSA Sheet</h2>
+                    <p class="text-gray-500">Your roadmap to DSA mastery.</p>
+                </div>
+                <button x-show="auth.isAdmin" @click="showReorderModal = true; initSortable()" class="mt-2 md:mt-0 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg text-sm">
+                    Reorder Topics
+                </button>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-2 mb-8">
+                <div class="flex items-center space-x-2 overflow-x-auto pb-2">
+                    <template x-for="topic in dsaSheetData.topics" :key="topic.order">
+                        <button @click="activeDsaTopic = topic.name" 
+                                class="topic-tab px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors duration-200"
+                                :class="{ 'active': activeDsaTopic === topic.name, 'hover:bg-sky-100 text-gray-700': activeDsaTopic !== topic.name }">
+                            <span x-text="topic.name"></span>
+                        </button>
+                    </template>
                 </div>
             </div>
 
-            <div x-show="auth.isAdmin" class="bg-white p-6 rounded-xl shadow-sm mb-8">
+            <div class="bg-white rounded-xl shadow-sm p-4 md:p-6">
+                <div x-show="activeDsaTopic" class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-bold text-gray-800" x-text="activeDsaTopic"></h3>
+                    <p class="text-sm font-semibold text-gray-600" x-text="`${progressByTopic[activeDsaTopic]?.solved || 0} / ${progressByTopic[activeDsaTopic]?.total || 0} solved`"></p>
+                </div>
+
+                <div x-show="!activeDsaTopic" class="text-center py-12">
+                    <p class="text-lg text-gray-500">Please select a topic to begin.</p>
+                </div>
+
+                <div class="space-y-2">
+                    <template x-for="q in filteredQuestions" :key="q._id">
+                        <div class="p-3 border-b flex justify-between items-center hover:bg-gray-50 rounded">
+                            <div class="flex items-center flex-grow min-w-0">
+                                <span class="text-gray-500 font-medium w-8" x-text="`${q.order}.`"></span>
+                                <a :href="q.link" target="_blank" class="font-medium hover:text-sky-600 truncate" :title="q.title" x-text="q.title"></a>
+                            </div>
+                            <div class="flex items-center gap-2 flex-shrink-0 ml-2">
+                                <button x-show="auth.isAdmin" @click="deleteDsaQuestion(q._id)" class="text-gray-400 hover:text-red-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                                </button>
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="checkbox" @change="toggleDsaSolve(q._id)" :checked="auth.solvedDSA.includes(q._id)" class="h-5 w-5 rounded-md text-green-600 focus:ring-green-500">
+                                </label>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <div x-show="auth.isAdmin" class="bg-white p-6 rounded-xl shadow-sm mt-8">
                 <h3 class="text-xl font-bold mb-4">Add New DSA Question</h3>
                 <form @submit.prevent="addDsaQuestion()">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700">Topic (Primary Tag)</label>
-                            <select x-model="dsaForm.primaryTag" class="mt-1 w-full px-4 py-2 bg-gray-100 rounded-lg">
-                                <option value="">-- Select a Topic --</option>
-                                <template x-for="tag in dsaPrimaryTags" :key="tag">
-                                    <option :value="tag" x-text="tag"></option>
+                             <input type="text" x-model="dsaForm.primaryTag" list="topics-list" placeholder="Type or select a topic" required class="mt-1 w-full px-4 py-2 bg-gray-100 rounded-lg">
+                             <datalist id="topics-list">
+                                <template x-for="topic in dsaSheetData.topics" :key="topic.name">
+                                    <option :value="topic.name"></option>
                                 </template>
-                                <option value="--new--">** Add New Topic **</option>
-                            </select>
-                        </div>
-                        <div x-show="dsaForm.primaryTag === '--new--'" class="md:col-span-2">
-                            <input type="text" x-model="dsaForm.newPrimaryTag" placeholder="Enter New Topic Name (e.g., Dynamic Programming)" class="w-full px-4 py-2 bg-gray-100 rounded-lg">
+                             </datalist>
                         </div>
                         <input type="text" x-model="dsaForm.title" placeholder="Question Title" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
                         <input type="url" x-model="dsaForm.link" placeholder="Question Link (LeetCode, etc.)" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
@@ -304,56 +354,6 @@
                         </div>
                     </div>
                 </form>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <template x-for="tag in dsaPrimaryTags" :key="tag">
-                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-                        <div @click="activeDsaTag = (activeDsaTag === tag ? null : tag)" class="p-4 flex justify-between items-center cursor-pointer hover:bg-gray-50">
-                            <div class="flex items-center gap-4">
-                                <div class="relative w-12 h-12 md:w-16 md:h-16 flex-shrink-0">
-                                    <svg class="w-full h-full" viewBox="0 0 36 36">
-                                        <path class="text-gray-200" stroke="currentColor" stroke-width="4" fill="none"
-                                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                        <path class="text-sky-500" stroke="currentColor" stroke-width="4" fill="none"
-                                            stroke-linecap="round"
-                                            :stroke-dasharray="`${progressByTag[tag]?.percentage || 0}, 100`"
-                                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                    </svg>
-                                    <div class="absolute inset-0 flex items-center justify-center">
-                                        <span class="text-xs font-bold text-gray-600" x-text="`${progressByTag[tag]?.percentage || 0}%`"></span>
-                                    </div>
-                                </div>
-                                <div>
-                                     <h3 class="text-base md:text-lg font-bold text-gray-800" x-text="tag"></h3>
-                                    <p class="text-sm text-gray-500" x-text="`${progressByTag[tag]?.solved || 0} / ${progressByTag[tag]?.total || 0} solved`"></p>
-                                </div>
-                            </div>
-                            <svg class="w-5 h-5 transition-transform text-gray-400 flex-shrink-0 ml-2" :class="{'rotate-180': activeDsaTag === tag}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
-
-                        <div x-show="activeDsaTag === tag" x-transition class="p-4 border-t bg-gray-50">
-                            <div class="space-y-2">
-                                <template x-for="q in questionsByTag[tag]" :key="q._id">
-                                    <div class="p-3 border-b flex justify-between items-center hover:bg-white rounded">
-                                        <div class="flex items-center flex-grow min-w-0">
-                                            <span class="text-gray-500 font-medium w-8" x-text="`${q.order}.`"></span>
-                                            <a :href="q.link" target="_blank" class="font-medium hover:text-sky-600 truncate" :title="q.title" x-text="q.title"></a>
-                                        </div>
-                                        <div class="flex items-center gap-2 flex-shrink-0 ml-2">
-                                            <button x-show="auth.isAdmin" @click="deleteDsaQuestion(q._id)" class="text-gray-400 hover:text-red-500">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-                                            </button>
-                                            <label class="flex items-center cursor-pointer">
-                                                <input type="checkbox" @change="toggleDsaSolve(q._id)" :checked="auth.solvedDSA.includes(q._id)" class="h-5 w-5 rounded-md text-green-600 focus:ring-green-500">
-                                            </label>
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-                    </div>
-                </template>
             </div>
         </main>
         
@@ -428,6 +428,24 @@
         </main>
     </div>
 
+    <div x-show="showReorderModal" @keydown.escape.window="showReorderModal = false" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" x-cloak>
+        <div @click.away="showReorderModal = false" class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <h3 class="text-xl font-bold mb-4">Drag to Reorder Topics</h3>
+            <div id="reorder-list" class="space-y-2">
+                <template x-for="topic in dsaSheetData.topics" :key="topic.name">
+                    <div class="draggable-item p-3 bg-white border rounded-lg shadow-sm flex items-center" :data-id="topic.name">
+                        <svg class="w-5 h-5 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                        <span x-text="topic.name"></span>
+                    </div>
+                </template>
+            </div>
+            <div class="flex justify-end gap-4 mt-6">
+                <button @click="showReorderModal = false" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg">Cancel</button>
+                <button @click="saveTopicOrder()" class="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-lg">Save Order</button>
+            </div>
+        </div>
+    </div>
+
     <footer x-show="auth.token" class="w-full text-center p-4 text-gray-500 text-sm mt-8">
         <p class="font-bold">Developed by Ninkor B.</p>
         <p class="max-w-prose mx-auto my-2">This is a personal project to demonstrate full-stack development skills using the MERN stack (MongoDB, Express, Node.js) with a modern front-end. It's designed to be a simple, effective tool for daily planning and motivation.</p>
@@ -447,23 +465,23 @@
             tasks: [], 
             weeklyTasks: [],
             history: [],
-            dsaQuestions: [],
             allUsers: [],
             expandedUser: null,
-            dsaForm: { title: '', link: '', primaryTag: '', newPrimaryTag: '', tags: '' },
-            activeDsaTag: null,
             notification: { show: false, message: '' },
-            showCommentsFor: null,
-            commentForm: { text: '' },
             weeklyTaskForm: { title: '', duration: null, link: '', automate: false, preferredSlots: [], startTime: null },
             timeSlots: ['Morning', 'Afternoon', 'Evening'],
-            showEditReward: false,
-            newReward: '',
             settingsForm: { dayStartTime: 9, dayEndTime: 21 },
             isMobileMenuOpen: false,
             forgotPassword: { view: 'check', form: { username: '', fullName: '', link: '' }, token: null, checkToken: '', status: '', adminResponse: '', newPassword: '' },
             passwordForm: { currentPassword: '', newPassword: '', message: '', success: false },
             passwordRequests: [],
+            
+            // --- DSA Page State ---
+            dsaSheetData: { topics: [], questions: [] },
+            activeDsaTopic: null,
+            dsaForm: { title: '', link: '', primaryTag: '', tags: '' },
+            showReorderModal: false,
+            sortableInstance: null,
             
             // --- COMPUTED PROPERTIES ---
             get currentDate() { return new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); },
@@ -507,31 +525,24 @@
                 }
                 return currentStreak;
             },
-            get dsaPrimaryTags() {
-                const primaryTags = this.dsaQuestions.map(q => q.primaryTag);
-                return [...new Set(primaryTags)];
-            },
-            get questionsByTag() {
-                return this.dsaQuestions.reduce((acc, q) => {
-                    const tag = q.primaryTag;
-                    if (!acc[tag]) acc[tag] = [];
-                    acc[tag].push(q);
-                    return acc;
-                }, {});
-            },
             get dsaProgress() {
-                const total = this.dsaQuestions.length;
+                const total = this.dsaSheetData.questions.length;
                 if (total === 0) return { solved: 0, total: 0, percentage: 0 };
                 const solved = this.auth.solvedDSA.length;
                 return { solved, total, percentage: Math.round((solved / total) * 100) };
             },
-            get progressByTag() {
+            get filteredQuestions() {
+                if (!this.activeDsaTopic) return [];
+                return this.dsaSheetData.questions.filter(q => q.primaryTag === this.activeDsaTopic);
+            },
+            get progressByTopic() {
                 const progress = {};
-                this.dsaPrimaryTags.forEach(tag => {
-                    const questionsInTag = this.questionsByTag[tag] || [];
-                    const total = questionsInTag.length;
-                    const solved = questionsInTag.filter(q => this.auth.solvedDSA.includes(q._id)).length;
-                    progress[tag] = { solved, total, percentage: total > 0 ? Math.round((solved / total) * 100) : 0 };
+                if (!this.dsaSheetData.topics) return progress;
+                this.dsaSheetData.topics.forEach(topic => {
+                    const questionsInTopic = this.dsaSheetData.questions.filter(q => q.primaryTag === topic.name);
+                    const total = questionsInTopic.length;
+                    const solved = questionsInTopic.filter(q => this.auth.solvedDSA.includes(q._id)).length;
+                    progress[topic.name] = { solved, total, percentage: total > 0 ? Math.round((solved / total) * 100) : 0 };
                 });
                 return progress;
             },
@@ -665,59 +676,39 @@
                     this.notification.show = false;
                 }, 3000);
             },
-            async updateReward() {
+            async getDsaSheetData() {
                 try {
-                    const data = await this.apiCall('/api/auth/reward', 'PUT', { reward: this.newReward });
-                    this.auth.reward = data.reward;
-                    this.showEditReward = false;
-                } catch (error) { console.error("Failed to update reward:", error); }
-            },
-            async updateDaySettings() {
-                try {
-                    const data = await this.apiCall('/api/auth/settings', 'PUT', this.settingsForm);
-                    this.auth.dayStartTime = data.dayStartTime;
-                    this.auth.dayEndTime = data.dayEndTime;
-                    this.tasks = data.tasks;
-                    alert('Settings saved and schedule regenerated!');
+                    const data = await this.apiCall('/api/dsa/sheet-data');
+                    this.dsaSheetData = data;
+                    if (!this.activeDsaTopic && data.topics.length > 0) {
+                        this.activeDsaTopic = data.topics[0].name;
+                    }
                 } catch (error) {
-                    alert('Failed to save settings.');
-                    console.error("Failed to update settings:", error);
+                    console.error("Failed to get DSA sheet data:", error);
                 }
-            },
-            async getDsaQuestions() {
-                try {
-                    this.dsaQuestions = await this.apiCall('/api/dsa');
-                } catch (error) { console.error("Failed to get DSA questions:", error); }
             },
             async addDsaQuestion() {
                 try {
-                    let finalPrimaryTag = this.dsaForm.primaryTag;
-                    if (finalPrimaryTag === '--new--') {
-                        finalPrimaryTag = this.dsaForm.newPrimaryTag;
-                    }
-                    if (!finalPrimaryTag) {
-                        alert('Please select or create a primary topic.');
+                    if (!this.dsaForm.primaryTag) {
+                        alert('Please provide a topic for the question.');
                         return;
                     }
-
-                    const payload = {
-                        title: this.dsaForm.title,
-                        link: this.dsaForm.link,
-                        primaryTag: finalPrimaryTag,
-                        tags: this.dsaForm.tags
-                    };
-
-                    await this.apiCall('/api/dsa', 'POST', payload);
-                    this.dsaForm = { title: '', link: '', primaryTag: '', newPrimaryTag: '', tags: '' };
-                    this.getDsaQuestions(); // Refresh the list
-                } catch (error) { console.error("Failed to add DSA question:", error); }
+                    await this.apiCall('/api/dsa', 'POST', this.dsaForm);
+                    this.dsaForm = { title: '', link: '', primaryTag: '', tags: '' };
+                    this.getDsaSheetData(); // Refresh all data
+                } catch (error) {
+                    alert('Failed to add question. The link might already exist.');
+                    console.error("Failed to add DSA question:", error);
+                }
             },
             async deleteDsaQuestion(questionId) {
-                if(confirm('Are you sure you want to delete this question? This will re-number the rest of the list.')) {
+                if (confirm('Are you sure you want to delete this question?')) {
                     try {
                         await this.apiCall(`/api/dsa/${questionId}`, 'DELETE');
-                        this.getDsaQuestions(); // Refresh the entire list to get correct numbering
-                    } catch (error) { console.error("Failed to delete question:", error); }
+                        this.getDsaSheetData(); // Refresh all data
+                    } catch (error) {
+                        console.error("Failed to delete question:", error);
+                    }
                 }
             },
             async toggleDsaSolve(questionId) {
@@ -725,13 +716,29 @@
                     this.auth.solvedDSA = await this.apiCall(`/api/dsa/${questionId}/solve`, 'PUT');
                 } catch (error) { console.error("Failed to toggle solve status:", error); }
             },
-            async addComment(questionId) {
-                try {
-                    const updatedComments = await this.apiCall(`/api/dsa/${questionId}/comment`, 'POST', this.commentForm);
-                    const question = this.dsaQuestions.find(q => q._id === questionId);
-                    if (question) question.comments = updatedComments;
-                    this.commentForm.text = '';
-                } catch (error) { console.error("Failed to add comment:", error); }
+            initSortable() {
+                this.$nextTick(() => {
+                    const list = document.getElementById('reorder-list');
+                    if (list) {
+                        this.sortableInstance = Sortable.create(list, {
+                            animation: 150,
+                            ghostClass: 'bg-sky-100'
+                        });
+                    }
+                });
+            },
+            async saveTopicOrder() {
+                if (this.sortableInstance) {
+                    const orderedTopicNames = this.sortableInstance.toArray();
+                    try {
+                        await this.apiCall('/api/dsa/topics/reorder', 'POST', { orderedTopics: orderedTopicNames });
+                        this.showReorderModal = false;
+                        this.getDsaSheetData(); // Refresh to show new order
+                    } catch (error) {
+                        alert('Failed to save the new order.');
+                        console.error("Failed to reorder topics:", error);
+                    }
+                }
             },
             async getAdminData() {
                 if (!this.auth.isAdmin) return;
@@ -795,6 +802,5 @@
         }
     }
 </script>
-<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </body>
 </html>
