@@ -6,104 +6,65 @@
     <title>MyWeekly - Your Custom Schedule Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Library for Drag-and-Drop Reordering -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <!-- Link to your new stylesheet -->
     <link rel="stylesheet" href="frontend/css/style.css">
-    <!-- AlpineJS Core -->
+
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
 
-    <div x-data="{}" x-init="$store.main.init()" class="flex flex-col min-h-screen bg-gray-100">
+    <div x-data class="flex flex-col min-h-screen bg-gray-100">
 
-        <!-- Notification Popup -->
         <div x-show="$store.main.notification.show" x-transition class="fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg z-50">
             <p x-text="$store.main.notification.message"></p>
         </div>
 
-        <!-- Login/Register/Forgot Password Section -->
-        <div x-show="!$store.main.auth.token" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" x-data="authComponent()">
+        <div x-show="!$store.main.auth.token" x-cloak x-data="authComponent()" x-init="init()" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
             <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
-                <!-- Login, Register, and Forgot Password forms go here -->
-                <!-- (HTML is identical to before, just now controlled by authComponent) -->
-            </div>
+                <div x-show="view === 'login'">
+                    <h2 class="text-3xl font-bold text-center text-gray-800 mb-2">Welcome Back</h2>
+                    <p class="text-center text-gray-500 mb-6">Login to see your schedule.</p>
+                    <form @submit.prevent="login()">
+                        <div class="space-y-4">
+                            <input type="text" x-model="form.username" placeholder="Username" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
+                            <input type="password" x-model="form.password" placeholder="Password" required class="w-full px-4 py-2 bg-gray-100 rounded-lg">
+                            <p x-text="error" class="text-red-500 text-sm text-center h-4"></p>
+                            <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-lg">Login</button>
+                        </div>
+                    </form>
+                    <p class="text-center text-sm text-gray-500 mt-4"><a href="#" @click.prevent="view = 'forgot'" class="font-semibold text-sky-600">Forgot Password?</a></p>
+                    <p class="text-center text-sm text-gray-500 mt-2">Don’t have an account? <a href="#" @click.prevent="view = 'register'" class="font-semibold text-sky-600">Register</a></p>
+                </div>
+                </div>
         </div>
 
-        <!-- Main App -->
         <div x-show="$store.main.auth.token" x-cloak class="flex-grow flex flex-col">
             <header class="bg-white shadow-sm sticky top-0 z-40">
                 <div class="container mx-auto p-4 flex justify-between items-center">
-                    <div class="flex items-center gap-4">
-                        <div class="md:hidden">
-                            <button @click="$store.main.isMobileMenuOpen = !$store.main.isMobileMenuOpen">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
-                            </button>
-                        </div>
-                        <a href="#" @click.prevent="$store.main.currentPage = 'profile'" class="text-xl md:text-2xl font-bold text-gray-800" x-text="`Welcome, ${$store.main.auth.username}!`"></a>
-                    </div>
-                    
+                    <a href="#" @click.prevent="$store.main.currentPage = 'profile'" class="text-xl md:text-2xl font-bold" x-text="`Welcome, ${$store.main.auth.username}!`"></a>
                     <nav class="hidden md:flex items-center gap-4">
-                        <a href="#" @click.prevent="$store.main.currentPage = 'dashboard'" :class="{'text-sky-600 font-semibold': $store.main.currentPage === 'dashboard'}" class="text-gray-600 hover:text-sky-600">Dashboard</a>
-                        <a href="#" @click.prevent="$store.main.currentPage = 'manageTasks'" :class="{'text-sky-600 font-semibold': $store.main.currentPage === 'manageTasks'}" class="text-gray-600 hover:text-sky-600">Manage Tasks</a>
-                        <a href="#" @click.prevent="$store.main.currentPage = 'dsaSheet'" :class="{'text-sky-600 font-semibold': $store.main.currentPage === 'dsaSheet'}" class="text-gray-600 hover:text-sky-600">DSA Sheet</a>
-                        <a href="#" @click.prevent="$store.main.currentPage = 'history'" :class="{'text-sky-600 font-semibold': $store.main.currentPage === 'history'}" class="text-gray-600 hover:text-sky-600">History</a>
-                        <a x-show="$store.main.auth.isAdmin" href="#" @click.prevent="$store.main.currentPage = 'adminQueries'" :class="{'text-red-600 font-semibold': $store.main.currentPage === 'adminQueries'}" class="text-gray-600 hover:text-red-600">Queries</a>
-                        <a x-show="$store.main.auth.isAdmin" href="#" @click.prevent="$store.main.currentPage = 'adminUsers'" :class="{'text-red-600 font-semibold': $store.main.currentPage === 'adminUsers'}" class="text-gray-600 hover:text-red-600">Users</a>
-                        <button @click="$store.main.logout()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition">Logout</button>
+                        <a href="#" @click.prevent="$store.main.currentPage = 'dashboard'" :class="{'text-sky-600 font-semibold': $store.main.currentPage === 'dashboard'}">Dashboard</a>
+                        <a href="#" @click.prevent="$store.main.currentPage = 'manageTasks'" :class="{'text-sky-600 font-semibold': $store.main.currentPage === 'manageTasks'}">Manage Tasks</a>
+                        <a href="#" @click.prevent="$store.main.currentPage = 'dsaSheet'" :class="{'text-sky-600 font-semibold': $store.main.currentPage === 'dsaSheet'}">DSA Sheet</a>
+                        <a href="#" @click.prevent="$store.main.currentPage = 'history'" :class="{'text-sky-600 font-semibold': $store.main.currentPage === 'history'}">History</a>
+                        <a x-show="$store.main.auth.isAdmin" href="#" @click.prevent="$store.main.currentPage = 'adminQueries'" :class="{'text-red-600 font-semibold': $store.main.currentPage === 'adminQueries'}">Queries</a>
+                        <a x-show="$store.main.auth.isAdmin" href="#" @click.prevent="$store.main.currentPage = 'adminUsers'" :class="{'text-red-600 font-semibold': $store.main.currentPage === 'adminUsers'}">Users</a>
+                        <button @click="$store.main.logout()" class="bg-gray-200 hover:bg-gray-300 font-bold py-2 px-4 rounded-lg">Logout</button>
                     </nav>
-                </div>
-
-                <div x-show="$store.main.isMobileMenuOpen" @click.away="$store.main.isMobileMenuOpen = false" x-transition class="md:hidden bg-white border-t">
-                    <!-- Mobile nav links -->
                 </div>
             </header>
 
-            <!-- Page: Dashboard -->
-            <main x-show="$store.main.currentPage === 'dashboard'" x-data="dashboardComponent()" class="container mx-auto p-4 md:p-8">
-                <!-- Dashboard HTML content... -->
-            </main>
-
-            <!-- Page: Manage Tasks -->
-            <main x-show="$store.main.currentPage === 'manageTasks'" x-data="manageTasksComponent()" class="container mx-auto p-4 md:p-8">
-                <!-- Manage Tasks HTML content... -->
-            </main>
-
-            <!-- Page: History -->
-            <main x-show="$store.main.currentPage === 'history'" x-data="historyComponent()" class="container mx-auto p-4 md:p-8">
-                <!-- History HTML content... -->
-            </main>
-
-            <!-- Page: DSA Sheet -->
-            <main x-show="$store.main.currentPage === 'dsaSheet'" x-data="dsaSheetComponent()" class="container mx-auto p-4 md:p-8">
-                <!-- DSA Sheet HTML content... -->
-            </main>
-
-            <!-- Page: Admin Users -->
-            <main x-show="$store.main.currentPage === 'adminUsers'" x-data="adminComponent()" class="container mx-auto p-4 md:p-8">
-                <!-- Admin Users HTML content... -->
-            </main>
-
-            <!-- Page: Admin Queries -->
-            <main x-show="$store.main.currentPage === 'adminQueries'" x-data="adminComponent()" class="container mx-auto p-4 md:p-8">
-                <!-- Admin Queries HTML content... -->
-            </main>
-
-            <!-- Page: Profile -->
-            <main x-show="$store.main.currentPage === 'profile'" x-data="authComponent()" class="container mx-auto p-4 md:p-8">
-                <!-- Profile HTML content... -->
-            </main>
+            <main x-show="$store.main.currentPage === 'dashboard'" x-data="dashboardComponent()"></main>
+            <main x-show="$store.main.currentPage === 'manageTasks'" x-data="manageTasksComponent()"></main>
+            <main x-show="$store.main.currentPage === 'history'" x-data="historyComponent()"></main>
+            <main x-show="$store.main.currentPage === 'dsaSheet'" x-data="dsaSheetComponent()"></main>
+            <main x-show="$store.main.currentPage === 'adminUsers' || $store.main.currentPage === 'adminQueries'" x-data="adminComponent()"></main>
+            <main x-show="$store.main.currentPage === 'profile'" x-data="authComponent()"></main>
 
         </div>
 
-        <!-- Admin Modal: Reorder Topics -->
-        <div x-show="$store.dsaSheet.showReorderModal" ... >
-            <!-- Reorder Modal HTML content... -->
-        </div>
-
-        <!-- Footer -->
         <footer x-show="$store.main.auth.token" class="w-full text-center p-4 text-gray-500 text-sm mt-8">
-            <!-- Footer content... -->
+            <p class="font-bold">Developed by Ninkor B.</p>
         </footer>
 
     </div>
